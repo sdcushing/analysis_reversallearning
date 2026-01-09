@@ -1,0 +1,397 @@
+function sessionPyrLayerInfo = getPyrLayerInfo(subj, sessDate, sessNum, dirs, params,neuralRawDataPath, saveNeuralPath,  plotPyrLayer, selectManually)
+%last checked 10/29/25 JLK
+
+%% load session data %%
+load([neuralRawDataPath '\kilosort4\clusters_allrec.mat'])
+load([saveNeuralPath '\rawDataBySessionNeural.mat'])
+
+%% determine random time based on immobility %%
+numsecs = 1;
+maxNumEvents = 100;
+randImTime = [];
+randInds = randi(length(rawDataBySessionNeural.vrTime)-numsecs/0.02-1,100000,1);
+tCtr = 0;
+for t = 1:length(randInds)
+    if max(rawDataBySessionNeural.speedSmooth(randInds(t):randInds(t)+numsecs/0.02-1)) < 2 %samprate ~= 0.02 secs; moving = above 0.3
+        tCtr = tCtr + 1;
+        randImTime(tCtr) = randInds(t);
+    end
+end
+if length(randImTime)>maxNumEvents; randImTime = randImTime(1:maxNumEvents);end%cut to max number of events
+
+%% determine random time based on mobility %%
+numsecs = 2;
+maxNumEvents = 100;
+randMobTime = [];
+randInds = randi(length(rawDataBySessionNeural.vrTime)-numsecs/0.02-1,100000,1);
+tCtr = 0;
+for t = 1:length(randInds)
+    if min(rawDataBySessionNeural.speedSmooth(randInds(t):randInds(t)+numsecs/0.02-1)) >= 0.3 %samprate ~= 0.02 secs; moving = above 0.3
+        tCtr = tCtr + 1;
+        randMobTime(tCtr) = randInds(t);
+    end
+end
+if length(randMobTime)>maxNumEvents; randMobTime = randMobTime(1:maxNumEvents);end%cut to max number of events
+
+%% calculate power for each channel %%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% chronux parameters %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%set chronux params
+chparams.fpass = [1 400];
+chparams.tapers = [2 3];
+chparams.Fs = params.lfp_samprate_down;
+chparams.pad = 0;
+chparams.trialave = 0;
+
+%determine frequency ranges to look at
+%freq 1, 2, 3 would be theta, slow gamma, fast gamma, respectively
+freq = [];
+freq(1).name = 'theta';
+freq(1).range = [6 10];
+freq(1).xlim = [1 2];
+
+freq(4).name = 'spiking';
+freq(4).range = [150 240];
+freq(4).xlim = [3 4];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% find power for all channels to use as min/max values %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%find power for each channel
+mych = 1:size(rawDataBySessionNeural.lfpData,1);%all channels
+all_ch_power_th = [];
+all_ch_power_sp = [];
+for fr = [1 4]
+    chctr = 0;
+    all_ch_lfp = [];
+    all_ch_power = [];
+
+    for ch = mych
+        if fr == 1
+            chctr = chctr + 1;
+            %get data for this channel
+            tmp_lfp = [];
+            for tMob = 1:length(randMobTime)
+                tmp_lfp(tMob,:) = rawDataBySessionNeural.lfpData(ch,randMobTime(tMob):randMobTime(tMob)+chparams.Fs*numsecs-1);
+            end
+
+            %calculate spectra using Chronux
+            %S = frequency bins x windows
+            [S, f] = mtspectrumc(tmp_lfp',chparams);
+
+            %find median power across windows; tmp_power = frequency bins x 1
+            df = 2*(size(tmp_lfp,1))*chparams.tapers(2);%degrees of freedom = 2 * #trials * #tapers
+            tmp_power = median(S,2);%use median across events to avoid impact of outlier events
+
+            %save data to all channels struct
+            all_ch_lfp(chctr,:,:) = tmp_lfp;
+            all_ch_power(chctr,:) = 10*(log10(tmp_power)-psi(df/2)+log(df/2)); %log transformed and bias corrected and X10 bel-->decibel
+
+            whichf = f>=freq(1).range(1) & f<=freq(1).range(2);
+            all_ch_power_th(chctr) = mean(all_ch_power(chctr,whichf));
+        elseif fr == 4
+            chctr = chctr + 1;
+            %get data for this channel
+            tmp_lfp = [];
+            for tImmob = 1:length(randImTime)
+                tmp_lfp(tImmob,:) = rawDataBySessionNeural.lfpData(ch,randImTime(tImmob):randImTime(tImmob)+chparams.Fs*numsecs-1);
+            end
+
+            %calculate spectra using Chronux
+            %S = frequency bins x windows
+            [S, f] = mtspectrumc(tmp_lfp',chparams);
+
+            %find median power across windows; tmp_power = frequency bins x 1
+            df = 2*(size(tmp_lfp,1))*chparams.tapers(2);%degrees of freedom = 2 * #trials * #tapers
+            tmp_power = median(S,2);%use median across events to avoid impact of outlier events
+
+            %save data to all channels struct
+            all_ch_lfp(chctr,:,:) = tmp_lfp;
+            all_ch_power(chctr,:) = 10*(log10(tmp_power)-psi(df/2)+log(df/2)); %log transformed and bias corrected and X10 bel-->decibel
+
+            whichf = f>=freq(4).range(1) & f<=freq(4).range(2);
+            all_ch_power_sp(chctr) = mean(all_ch_power(chctr,whichf));
+        end%if fr
+    end%ch
+end%fr
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% collect cluster info %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+allPyrSpAmpsMn = [];
+allPyrMaxChan = [];
+allPyrCluID = [];
+allPyrNumSp = [];
+allIntCluID = [];
+allIntMaxChan = [];
+allWideCluID = [];
+for clu = 1:length(clusters_allrec)
+    if sum([rawDataBySessionNeural.apData.ID]==clusters_allrec(clu).ID)>0
+        if contains(rawDataBySessionNeural.apData([rawDataBySessionNeural.apData.ID]==clusters_allrec(clu).ID).putativeCellType, 'Pyr')
+            allPyrCluID = [allPyrCluID clusters_allrec(clu).ID];
+            allPyrMaxChan = [allPyrMaxChan clusters_allrec(clu).maxChan];
+            allPyrSpAmpsMn = [allPyrSpAmpsMn mean(clusters_allrec(clu).spikeAmps)];
+            allPyrNumSp = [allPyrNumSp length(clusters_allrec(clu).spikeAmps)];
+        elseif contains(rawDataBySessionNeural.apData([rawDataBySessionNeural.apData.ID]==clusters_allrec(clu).ID).putativeCellType, 'Narrow')
+            allIntCluID = [allIntCluID clusters_allrec(clu).ID];
+            allIntMaxChan = [allIntMaxChan clusters_allrec(clu).maxChan];
+        elseif contains(rawDataBySessionNeural.apData([rawDataBySessionNeural.apData.ID]==clusters_allrec(clu).ID).putativeCellType, 'Wide')
+            allWideCluID = [allWideCluID clusters_allrec(clu).ID];
+        end
+    end
+end
+if (length(allPyrCluID) + length(allIntCluID) + length(allWideCluID)) ~= length(clusters_allrec)
+    sprintf('Too many clusters!')
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% loop through windows of channels %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%find median ripple amplitude, median spike amplitude, and number of putative pyramidal cells for each window of n channels
+numChans = 10;
+allWThPowerAmp = []; allWSpPowerAmp = []; allWPyrCount = []; allWSpAmpMed = [];
+for w = 1:length(all_ch_power_sp)-numChans+1
+    thisW = w:w+(numChans-1);
+    allWThPowerAmp(w) = median(all_ch_power_th(thisW));
+    allWSpPowerAmp(w) = median(all_ch_power_sp(thisW));
+    allWPyrCount(w) = length(allPyrCluID(allPyrMaxChan>=thisW(1) & allPyrMaxChan<=thisW(end)));
+    allWSpAmpMed(w) = median(allPyrSpAmpsMn(allPyrMaxChan>=thisW(1) & allPyrMaxChan<=thisW(end)));
+end
+allWPyrCount(allWPyrCount==0) = nan;
+allWSpAmpMed(allWSpAmpMed==0) = nan;
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% find layers %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%% find peaks in the spike power amplitude %%%%%
+smoothVal = 5;
+tmpPeaks = findpeaks(smooth(allWSpPowerAmp,smoothVal),median(smooth(allWSpPowerAmp,smoothVal))+std(smooth(allWSpPowerAmp,smoothVal))*0.25);
+tmpPeaks = tmpPeaks.loc;
+
+%%%%% find CA3 layer %%%%%
+tmpLay = [];
+[~, maxThPowerW] = max(allWThPowerAmp);
+tmpCA3Peaks = tmpPeaks(abs(tmpPeaks-maxThPowerW)<=15);
+[~, tmpLay] = max(allWSpPowerAmp(tmpCA3Peaks));
+pyrLayerCA3 = tmpCA3Peaks(tmpLay);
+
+%%%%% find CA1 layer %%%%%
+tmpLay = [];
+if ~isempty(pyrLayerCA3)
+    tmpCA1Peaks = tmpPeaks(tmpPeaks>pyrLayerCA3+20);
+else 
+    tmpCA1Peaks = tmpPeaks;
+end
+[~, tmpLay] = max(allWSpPowerAmp(tmpCA1Peaks));
+pyrLayerCA1 = tmpCA1Peaks(tmpLay);
+
+%%%%% save data to struct %%%%%
+%note: below will override these values if they are empty or selectManually = 1
+sessionPyrLayerInfo.pyrLayerCA1 = pyrLayerCA1-10:pyrLayerCA1+9;
+sessionPyrLayerInfo.pyrLayerCA3 = pyrLayerCA3-10:pyrLayerCA3+9;
+
+%% Plot %%
+if plotPyrLayer || selectManually || isempty(pyrLayerCA3) || isempty(pyrLayerCA1)
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%% plot spike power amplitude spectrogram %%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   
+    %Note: peaks in smoothed data used to determine pyramidal layers
+    %plot spike power
+    figure; hold on  
+    plot(allWSpPowerAmp, '-b'); plot([pyrLayerCA1 pyrLayerCA3], allWSpPowerAmp([pyrLayerCA1 pyrLayerCA3]), '*r'); plot(smooth(allWSpPowerAmp,smoothVal), '-r')
+    %plot theta power
+    plot(allWThPowerAmp, '-g'); plot(maxThPowerW, allWThPowerAmp(maxThPowerW), '*g')
+    title(['Pyramidal Layer Identification: ' subj '_' sessDate '_' sessNum], 'Interpreter','none')
+    legend({'', '', 'Spike power', 'Theta power'})
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%% plot raw traces in a sliding window and select layers %%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    %%%%% gather data %%%%%
+    nSamp = 10; % num of random time periods
+    rand_slice_indices = randi(length(randImTime), nSamp, 1);
+    rand_im_data = arrayfun(@(x) rawDataBySessionNeural.lfpData(:,randImTime(x):randImTime(x)+chparams.Fs*numsecs-1), rand_slice_indices, 'UniformOutput', false);
+
+    %%%%% create sliding window %%%%%
+    fig = figure('Position', [1,49,1920,955]);
+    % Create a panel for the slider
+    pnl = uipanel('Parent', fig, ...
+        'Title', 'Plot Selector', ...
+        'FontSize', 10, ...
+        'Position', [0.044791666666667,0.001832460732984,0.9,0.1]);%[0.05 0.05 0.9 0.1]);
+    ax = axes('Parent', fig, ...
+        'Position', [0.05 0.2 0.9 0.75]);
+    % Create slider inside the panel
+    sliderMax = 10;
+    sliderMin = 1;
+    sld = uicontrol('Parent', pnl, ...
+        'Style', 'slider', ...
+        'Min', sliderMin, 'Max', sliderMax, ...   % 10 plots to toggle
+        'Value', 1, ...
+        'SliderStep', [1, 1] / (sliderMax - sliderMin), ... % Snap to integers
+        'Units', 'normalized', ...
+        'Position', [0.1 0.3 0.8 0.4]);
+    % 'Callback', @(src,~) updatePlot(round(src.Value), ax));
+    lbl = uicontrol('Parent', pnl, ...
+        'Style', 'text', ...
+        'Units', 'normalized', ...
+        'Position', [0.1 0.75 0.8 0.2], ...
+        'FontSize', 10, ...
+        'String', 'Plot 1');
+    % Store label handle in slider's UserData for callback access
+    sld.UserData.lbl = lbl;
+
+    sld.Callback = @(src,~) updatePlot(round(src.Value), ax, rand_im_data, lbl, params);
+
+    % Names and horizontal placement
+    pnl_inputs = uipanel('Parent', fig, ...
+        'Title', 'Auto-detect surrounding channels by specifying the center, or manually select bottom and top channels for each layer', ...
+        'FontSize', 10, ...
+        'Position', [0.044791666666667,0.100366492146598,0.9,0.08]); %[0.05 0.27 0.9 0.08]);
+    names = {'CA1 center', 'CA3 center', 'CA1 shallow (optional)', 'CA1 deep (optional)', 'CA3 shallow (optional)', 'CA3 deep (optional)'};
+    n = numel(names);
+    editHandles = gobjects(1, n);
+
+    for i = 1:n
+        x = 0.02 + (i-1)*0.12;  % evenly spaced horizontally
+        % Label
+        uicontrol('Parent', pnl_inputs, ...
+            'Style', 'text', ...
+            'Units', 'normalized', ...
+            'Position', [x 0.55 0.1 0.4], ...% [left, bottom, width, height]
+            'HorizontalAlignment', 'left', ...
+            'String', names{i});
+        % Edit box
+        editHandles(i) = uicontrol('Parent', pnl_inputs, ...
+            'Style', 'edit', ...
+            'Units', 'normalized', ...
+            'Position', [x 0.1 0.1 0.4], ...
+            'BackgroundColor', 'white', ...
+            'String', '');
+    end
+
+    % ====== Button to save values ======
+    uicontrol('Parent', pnl_inputs, ...
+        'Style', 'pushbutton', ...
+        'Units', 'normalized', ...
+        'Position', [0.92 0.25 0.07 0.5], ...
+        'String', 'Save', ...
+        'Callback', @(~,~) uiresume(fig)); %@(~,~) saveInputs(editHandles));
+
+    %%%%% initial plot %%%%%
+    updatePlot(1, ax, rand_im_data, lbl, params);
+    uiwait(fig);
+    values = arrayfun(@(h) str2double(get(h, 'String')), editHandles);
+
+    %%%%% determine layers %%%%%
+    %CA1
+    surrounding = [9 10]; % above, below
+    if ~isnan(values(1)) % center specified
+        CA1_center = values(1);
+        CA1_shallow = CA1_center + surrounding(1);
+        CA1_deep = CA1_center - surrounding(2);
+    elseif ~isnan(values(3)) && ~isnan(values(4))
+        CA1_shallow = values(3);
+        CA1_deep = values(4);
+    else
+        error('For CA1, specify the center, or specify both bottom and top channels.')
+    end
+
+    %CA3
+    surrounding = [9 10]; % above, below
+    if ~isnan(values(2)) % center specified
+        CA3_center = values(2);
+        CA3_shallow = CA3_center + surrounding(1);
+        CA3_deep = CA3_center - surrounding(2);
+    elseif ~isnan(values(5)) && ~isnan(values(6))
+        CA3_shallow = values(5);
+        CA3_deep = values(6);
+    else
+        error('For CA3, specify the center, or specify both bottom and top channels.')
+    end
+
+    sessionPyrLayerInfo.pyrLayerCA1 = CA1_deep:CA1_shallow;
+    sessionPyrLayerInfo.pyrLayerCA3 = CA3_deep:CA3_shallow;
+
+    %% save fig %%
+    filename = [dirs.savefigures '\Neuropixels\DepthPlots\' subj '_' sessDate '_' sessNum '\pyrLayer'];
+    print(gcf,filename,'-dpng','-r300')
+ 
+end%if plotPyrLayer
+
+%% save data %%
+filename = [saveNeuralPath '\' 'sessionPyrLayerInfo.mat'];
+save(filename, 'sessionPyrLayerInfo', '-v7.3')
+
+%% accessory function for interactive plot
+% function updatePlot(plotNum, ax, lbl)
+%     % If lbl not passed (from slider callback), retrieve from UserData
+%     if nargin < 3
+%         lbl = ax.Parent.Children(1).UserData.lbl;
+%     end
+% 
+%     % Clear axes
+%     cla(ax);
+% 
+%     % Plot based on slider value
+%     switch plotNum
+%         case 1
+%             x = linspace(0, 2*pi, 100);
+%             plot(ax, x, sin(x), 'LineWidth', 2);
+%             title(ax, 'Sine Wave');
+%         case 2
+%             x = linspace(0, 2*pi, 100);
+%             plot(ax, x, cos(x), 'r', 'LineWidth', 2);
+%             title(ax, 'Cosine Wave');
+%         case 3
+%             x = linspace(0, 2*pi, 100);
+%             plot(ax, x, sin(x).*cos(x), 'g', 'LineWidth', 2);
+%             title(ax, 'Sine × Cosine');
+%     end
+% 
+%     % Update label text
+%     lbl.String = sprintf('Plot %d', plotNum);
+% end
+
+
+end%function
+
+
+function updatePlot(plotNum, ax, inputdata, lbl, params)
+    % If lbl not passed (from slider callback), retrieve from UserData
+    if nargin < 3
+        lbl = ax.Parent.Children(1).UserData.lbl;
+    end
+
+    % Clear axes
+    cla(ax);
+
+    chparams.Fs = params.lfp_samprate_down;
+    numsecs = 2;
+    chans = 1:140;
+    ytickspacing = [];
+    thisch = 0;
+    hold on
+    for ch = chans
+        thisch = thisch+1; 
+        plot(inputdata{plotNum}(ch,:)+ch/10'); 
+        ytickspacing(thisch) = ch/10;
+    end%can change devisor for spacing
+    title('CA1 Raw Traces of Random Immobile Time')
+    xticks([1:chparams.Fs-1:chparams.Fs*numsecs-1])
+    xticklabels([0 1 2 3])
+    xlabel('Time (s)')
+    ylabel('Channel')
+    yticks([ytickspacing])
+    yticklabels([chans])
+
+    % Update label text
+    lbl.String = sprintf('Plot %d', plotNum);
+end
