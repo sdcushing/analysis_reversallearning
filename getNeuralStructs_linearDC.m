@@ -18,8 +18,8 @@ function [rawDataBySessionNeural, rawDataByLapNeural, rawDataByTrialNeural] = ge
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%% load raw virmen data %%%%%switch to rawpos
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-rawDataBySession = load([virmenSessDataPath '\rawDataBySession.mat']);%whole session. have this, can load.fewer data pts than eeg and ttl files
-rawDataBySession = rawDataBySession.rawDataBySession;%
+rawDataBySession = load([processedDataPath '\rawpos.mat']);%whole session. have this, can load.fewer data pts than eeg and ttl files
+rawDataBySession = rawDataBySession.rawpos;%
 
 %%%%% deal with special cases %%%%%leaving these in so I have ideas how to
 %%%%% deal with them
@@ -142,108 +142,13 @@ if params.rm60HzNoise
 end%params.rm60HzNoise
 
 %determine lfp start/end times
-virmen_rec_time_lfp = lfp_ttl_start_ind + floor(virmen_rec_time_sums*lfp_samprate_down);
+virmen_rec_time_lfp = round(rawDataBySession.ephysInd/10);%20k/2k = 10 (og samprate/downsamp)
 
-%ensure last virmen data index is around last lfp ttl index
-if abs( (lfp_ttl_end_ind/lfp_samprate_down) - (virmen_rec_time_lfp(end)/lfp_samprate_down) ) > 1%seconds
-    sprintf('Check conversion of virmen times to lfp times.')
-end%time check
+% %ensure last virmen data index is around last lfp ttl index
+% if abs( (lfp_ttl_end_ind/lfp_samprate_down) - (virmen_rec_time_lfp(end)/lfp_samprate_down) ) > 1%seconds
+%     sprintf('Check conversion of virmen times to lfp times.')
+% end%time check
 
-%remove outliers for each channel
-% select "outlier" channels above pyramidal layer
-outlierChans = 180:4:220;
-
-% initialize variables
-outperiods = [];
-outlierindices = nan(size(outlierChans,1),2000,2);
-outChanCtr = 0;
-
-% gather outlier events for each outlier channel
-for ch = outlierChans
-    outChanCtr = outChanCtr + 1;
-    tmpData = lfp_data(ch,lfp_ttl_start_ind:lfp_ttl_end_ind);
-    tmpMn = mean(tmpData);
-    tmpStd = std(tmpData)*params.nstdNoise;
-    outliers = tmpData > tmpMn + tmpStd | tmpData < tmpMn - tmpStd; %outliers = 1 when data is above or below thresh
-    if any(outliers)
-        runs = contiguous(outliers, 1); %get runs of 1s
-        outperiods = runs{1,2}; %first column is start of outlier period, second column is end
-    else
-        outperiods(outChanCtr,:,:) = [0 0];
-    end%if any(outliers)
-    outlierindices(outChanCtr,1:size(outperiods,1),:) = outperiods;
-end%ch
-
-% find indicies for unique outlier events across outlier channels
-tmpHistSt = histcounts(outlierindices(:,:,1),1:size(lfp_data(lfp_ttl_start_ind:lfp_ttl_end_ind),2));
-tmpHistStInds = find(tmpHistSt>=2);%events found in at least two channels
-tmpHistStInds = tmpHistStInds(diff(tmpHistStInds)>10);%unique = >10 samples away
-
-% create new lfp traces with smoothed outliers
-new_lfp_data = lfp_data;
-for ch = 1:size(new_lfp_data,1)
-    for o = 1:length(tmpHistStInds)
-        tmpDatatoInterpOG = new_lfp_data(ch,lfp_ttl_start_ind+tmpHistStInds(o)-100:lfp_ttl_start_ind+tmpHistStInds(o)+99);
-        tmpDatatoInterpY = new_lfp_data(ch,lfp_ttl_start_ind+tmpHistStInds(o)-100:lfp_ttl_start_ind+tmpHistStInds(o)+99);
-        tmpDatatoInterpY(97:99+9) = nan;
-        tmpDatatoInterpX = 1:length(tmpDatatoInterpY);
-        tmpInterp = interp1(tmpDatatoInterpX(~isnan(tmpDatatoInterpY)), tmpDatatoInterpY(~isnan(tmpDatatoInterpY)), tmpDatatoInterpX, 'spline');
-        % plot(tmpHistStInds(o)-100+1:tmpHistStInds(o)+99+1,tmpDatatoInterpOG)
-        % plot(tmpHistStInds(o)-100+1:tmpHistStInds(o)+99+1,tmpInterp,'g')
-        new_lfp_data(ch,lfp_ttl_start_ind+tmpHistStInds(o)-100:lfp_ttl_start_ind+tmpHistStInds(o)+99) = tmpInterp;
-    end%outliers
-end%ch
-
-%plot outliers
-figure; hold on
-%low-low channel
-plot(lfp_data(5,lfp_ttl_start_ind:lfp_ttl_end_ind))%original trace
-plot(new_lfp_data(5,lfp_ttl_start_ind:lfp_ttl_end_ind))%new trace
-plot(tmpHistStInds,lfp_data(5,tmpHistStInds),'r*')%outlier start indicies
-tmpData = lfp_data(5,lfp_ttl_start_ind:lfp_ttl_end_ind);
-tmpMn = mean(tmpData);
-tmpStd = std(tmpData)*params.nstdNoise;
-plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn+tmpStd),'--k')%outlier threshold
-plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn-tmpStd),'--k')%outlier threshold
-%middle-low hip channel
-plot(lfp_data(30,lfp_ttl_start_ind:lfp_ttl_end_ind)+1)%original trace
-plot(new_lfp_data(30,lfp_ttl_start_ind:lfp_ttl_end_ind)+1)%new trace
-plot(tmpHistStInds,lfp_data(30,tmpHistStInds)+1,'r*')%outlier start indicies
-tmpData = lfp_data(30,lfp_ttl_start_ind:lfp_ttl_end_ind);
-tmpMn = mean(tmpData);
-tmpStd = std(tmpData)*params.nstdNoise;
-plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn+tmpStd)+1,'--k')%outlier threshold
-plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn-tmpStd)+1,'--k')%outlier threshold
-%middle-middle hip channel
-plot(lfp_data(90,lfp_ttl_start_ind:lfp_ttl_end_ind)+2)%original trace
-plot(new_lfp_data(90,lfp_ttl_start_ind:lfp_ttl_end_ind)+2)%new trace
-plot(tmpHistStInds,lfp_data(90,tmpHistStInds)+2,'r*')%outlier start indicies
-tmpData = lfp_data(90,lfp_ttl_start_ind:lfp_ttl_end_ind);
-tmpMn = mean(tmpData);
-tmpStd = std(tmpData)*params.nstdNoise;
-plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn+tmpStd)+2,'--k')%outlier threshold
-plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn-tmpStd)+2,'--k')%outlier threshold
-%high-middle hip channel
-plot(lfp_data(120,lfp_ttl_start_ind:lfp_ttl_end_ind)+3)%original trace
-plot(new_lfp_data(120,lfp_ttl_start_ind:lfp_ttl_end_ind)+3)%new trace
-plot(tmpHistStInds,lfp_data(120,tmpHistStInds)+3,'r*')%outlier start indicies
-tmpData = lfp_data(120,lfp_ttl_start_ind:lfp_ttl_end_ind);
-tmpMn = mean(tmpData);
-tmpStd = std(tmpData)*params.nstdNoise;
-plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn+tmpStd)+3,'--k')%outlier threshold
-plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn-tmpStd)+3,'--k')%outlier threshold
-%dashed line splitting lower channels and upper outlier channels
-plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*4,'--k', 'LineWidth',8)%outlier threshold
-%original outlier channel traces with outlier thresholds and start indices
-for ch = 1:length(outlierChans)
-    plot(lfp_data(outlierChans(ch),lfp_ttl_start_ind:lfp_ttl_end_ind)+ch+4)
-    tmpData = lfp_data(outlierChans(ch),lfp_ttl_start_ind:lfp_ttl_end_ind);
-    tmpMn = mean(tmpData);
-    tmpStd = std(tmpData)*params.nstdNoise;
-    plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn+tmpStd)+ch+4,'--k')%outlier threshold
-    plot(1:size(lfp_data,2),ones(1,size(lfp_data,2))*(tmpMn-tmpStd)+ch+4,'--k')%outlier threshold
-    plot(outlierindices(ch,:,1),zeros(1,length(outlierindices(ch,:,1)))+ch+4,'r*')%outlier start indices
-end
 
 %%%%% APs %%%%%
 %load session clusters struct
@@ -255,15 +160,12 @@ clustersRow = []; for cl = 1:length(clusters); clustersRow(cl) = strcmp(clusters
 ap_samprate = clusters(find(clustersRow)).samprate;
 ap_data = clusters(find(clustersRow)).data;
 
-%determine ap start/end times
-ap_ttl_start_ind = ceil(nidaq_ttl_start_time*ap_samprate);
-ap_ttl_end_ind = floor(nidaq_ttl_end_time*ap_samprate);
-virmen_rec_time_ap = ap_ttl_start_ind + floor(virmen_rec_time_sums*ap_samprate);
+virmen_rec_time_ap = rawDataBySession.ephysInd;
 
-%ensure last virmen data index is around last ap ttl index
-if abs( (ap_ttl_end_ind/ap_samprate) - (virmen_rec_time_ap(end)/ap_samprate) ) > 1%seconds
-    sprintf('Check conversion of virmen times to lfp times.')
-end%time check
+% %ensure last virmen data index is around last ap ttl index
+% if abs( (ap_ttl_end_ind/ap_samprate) - (virmen_rec_time_ap(end)/ap_samprate) ) > 1%seconds
+%     sprintf('Check conversion of virmen times to lfp times.')
+% end%time check
 
 %remove spikes outside of virmen session
 for clu = 1:length(ap_data)
@@ -280,19 +182,20 @@ end%clu
 %%%%% create sturct and save data %%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 rawDataBySessionNeural = [];
-rawDataBySessionNeural.vrTime = virmen_rec_time;
+rawDataBySessionNeural.vrTime = rawDataBySession.vrTime;
 rawDataBySessionNeural.lfpTime = virmen_rec_time_lfp;
 rawDataBySessionNeural.apTime = virmen_rec_time_ap;
-rawDataBySessionNeural.lfpData = new_lfp_data;%already reduced to start to end TTL for finding outliers above
-rawDataBySessionNeural.lfpOutlierInd = [tmpHistStInds'-2 tmpHistStInds'+7];
+rawDataBySessionNeural.lfpData = lfp_data;%already reduced to start to end TTL for finding outliers above
+rawDataBySessionNeural.lfpmeta = lfp.meta;
+% rawDataBySessionNeural.lfpOutlierInd = [tmpHistStInds'-2 tmpHistStInds'+7];
 rawDataBySessionNeural.apData = ap_data;
-rawDataBySessionNeural.currentDeg = rawDataBySession.currentDeg(virmen_ttl_start_ind:virmen_ttl_end_ind);
+rawDataBySessionNeural.currentDeg = rawDataBySession.currentDeg;
 rawDataBySessionNeural.speed = [0; diff(rawDataBySessionNeural.currentDeg) ./ diff(rawDataBySessionNeural.vrTime)];
 rawDataBySessionNeural.speedSmooth = gaussSmooth(rawDataBySessionNeural.speed', 5)';
 rawDataBySessionNeural.isMoving = rawDataBySessionNeural.speed > params.speedTh;
-rawDataBySessionNeural.rewarded = [0; diff(rawDataBySession.rewards(virmen_ttl_start_ind:virmen_ttl_end_ind))];
-rawDataBySessionNeural.licked = [0; diff(rawDataBySession.licks(virmen_ttl_start_ind:virmen_ttl_end_ind))];
-rawDataBySessionNeural.currentZone = rawDataBySession.currentZone(virmen_ttl_start_ind:virmen_ttl_end_ind);
+rawDataBySessionNeural.rewarded = [0; diff(rawDataBySession.rewards)];
+rawDataBySessionNeural.licked = [0; diff(rawDataBySession.licks)];
+rawDataBySessionNeural.currentZone = rawDataBySession.currentZone;
 
 filename = [saveNeuralPath '\' 'rawDataBySessionNeural.mat'];
 save(filename, 'rawDataBySessionNeural', '-v7.3');
