@@ -206,15 +206,64 @@ save(filename, 'rawDataBySessionNeural', '-v7.3');
 if isfile([virmenSessDataPath '\rawDataByLap.mat'])
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%% load raw virmen data %%%%%
+    %%%%% load raw virmen data %%%%%skip this, instead break up the session
+    %%%%% data
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    rawDataByLap = load([virmenSessDataPath '\rawDataByLap.mat']);%laps
-    rawDataByLap = rawDataByLap.rawDataByLap;
+
+    %take rawDataBySessionNeural and break up using .currentDeg where
+    %lap changes over. want vrTime, lfpTime, apTime, currentDeg, speed,
+    %speekSmooth, isMoving, rewarded, licked, and currentZone to all be
+    %broken up. then do ratemaps, etc like Josh does. add on apData
+    %structure like Josh does below (use double for loop structure, just
+    %remove extra)
+
+    deg = rawDataBySessionNeural.currentDeg(:);
+    %find lap boundaries
+    lapStartIdx = 1; %first lap starts at 1
+    lapEndIdx = [];
+
+    for i = 1:length(deg) - 1
+        if deg(i) > 355 && deg(i+1) < 5 %little wiggle room for not exact
+            lapEndIdx = [lapEndIdx; i];
+        end
+    end
+
+    %add final lap if it passes the last RZ
+    if deg(end) > params.Rzones(3) + 20
+        lapEndIdx = [lapEndIdx; length(deg)];
+    end
+
+    numLaps = numel(lapEndIdx);
+    %preallocate output
+    rawDataByLapNeural = struct();
+    fieldsToSplit = ["vrTime","lfpTime","apTime","currentDeg","speed", ...
+                 "speedSmooth","isMoving","rewarded","licked","currentZone"];
+    for f = fieldsToSplit
+        rawDataByLapNeural.(f) = cell(numLaps, 1);
+    end
+
+    %actually cut each lap
+    for k = 1:numLaps
+        if k == 1
+            s = lapStartIdx;
+        else
+            s = lapEndIdx(k-1) + 1;
+        end
+        e = lapEndIdx(k);
+        for f = fieldsToSplit
+            rawDataByLapNeural.(f){k} = rawDataByTrialNeural.(f)(s:e);
+        end
+    end
+
+
+
+    %rawDataByLap = load([virmenSessDataPath '\rawDataByLap.mat']);%laps
+    %rawDataByLap = rawDataByLap.rawDataByLap;
 
     %%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%% create sturct %%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%
-    rawDataByLapNeural = [];
+    
     for ii = 1:length(rawDataByLap)%loop through laps
 
         %%%%% index whole session neural struct using virmen lap times %%%%%

@@ -160,12 +160,12 @@ clustersRow = []; for cl = 1:length(clusters); clustersRow(cl) = strcmp(clusters
 ap_samprate = clusters(find(clustersRow)).samprate;
 ap_data = clusters(find(clustersRow)).data;
 
-virmen_rec_time_ap = ap_ttl_start_ind + floor(virmen_rec_time_sums*ap_samprate);
+virmen_rec_time_ap = rawDataBySession.ephysInd;
 
-%ensure last virmen data index is around last ap ttl index
-if abs( (ap_ttl_end_ind/ap_samprate) - (virmen_rec_time_ap(end)/ap_samprate) ) > 1%seconds
-    sprintf('Check conversion of virmen times to lfp times.')
-end%time check
+% %ensure last virmen data index is around last ap ttl index
+% if abs( (ap_ttl_end_ind/ap_samprate) - (virmen_rec_time_ap(end)/ap_samprate) ) > 1%seconds
+%     sprintf('Check conversion of virmen times to lfp times.')
+% end%time check
 
 %remove spikes outside of virmen session
 for clu = 1:length(ap_data)
@@ -182,19 +182,20 @@ end%clu
 %%%%% create sturct and save data %%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 rawDataBySessionNeural = [];
-rawDataBySessionNeural.vrTime = virmen_rec_time;
+rawDataBySessionNeural.vrTime = rawDataBySession.vrTime;
 rawDataBySessionNeural.lfpTime = virmen_rec_time_lfp;
 rawDataBySessionNeural.apTime = virmen_rec_time_ap;
-rawDataBySessionNeural.lfpData = new_lfp_data;%already reduced to start to end TTL for finding outliers above
-rawDataBySessionNeural.lfpOutlierInd = [tmpHistStInds'-2 tmpHistStInds'+7];
+rawDataBySessionNeural.lfpData = lfp_data;%already reduced to start to end TTL for finding outliers above
+rawDataBySessionNeural.lfpmeta = lfp.meta;
+% rawDataBySessionNeural.lfpOutlierInd = [tmpHistStInds'-2 tmpHistStInds'+7];
 rawDataBySessionNeural.apData = ap_data;
-rawDataBySessionNeural.currentDeg = rawDataBySession.currentDeg(virmen_ttl_start_ind:virmen_ttl_end_ind);
+rawDataBySessionNeural.currentDeg = rawDataBySession.currentDeg;
 rawDataBySessionNeural.speed = [0; diff(rawDataBySessionNeural.currentDeg) ./ diff(rawDataBySessionNeural.vrTime)];
 rawDataBySessionNeural.speedSmooth = gaussSmooth(rawDataBySessionNeural.speed', 5)';
 rawDataBySessionNeural.isMoving = rawDataBySessionNeural.speed > params.speedTh;
-rawDataBySessionNeural.rewarded = [0; diff(rawDataBySession.rewards(virmen_ttl_start_ind:virmen_ttl_end_ind))];
-rawDataBySessionNeural.licked = [0; diff(rawDataBySession.licks(virmen_ttl_start_ind:virmen_ttl_end_ind))];
-rawDataBySessionNeural.currentZone = rawDataBySession.currentZone(virmen_ttl_start_ind:virmen_ttl_end_ind);
+rawDataBySessionNeural.rewarded = [0; diff(rawDataBySession.rewards)];
+rawDataBySessionNeural.licked = [0; diff(rawDataBySession.licks)];
+rawDataBySessionNeural.currentZone = rawDataBySession.currentZone;
 
 filename = [saveNeuralPath '\' 'rawDataBySessionNeural.mat'];
 save(filename, 'rawDataBySessionNeural', '-v7.3');
@@ -205,15 +206,48 @@ save(filename, 'rawDataBySessionNeural', '-v7.3');
 if isfile([virmenSessDataPath '\rawDataByLap.mat'])
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%% load raw virmen data %%%%%
+    %%%%% load raw virmen data %%%%%skip this, instead break up the session
+    %%%%% data
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    rawDataByLap = load([virmenSessDataPath '\rawDataByLap.mat']);%laps
-    rawDataByLap = rawDataByLap.rawDataByLap;
+
+    %take rawDataBySessionNeural and break up using .currentDeg where
+    %lap changes over. want vrTime, lfpTime, apTime, currentDeg, speed,
+    %speekSmooth, isMoving, rewarded, licked, and currentZone to all be
+    %broken up. then do ratemaps, etc like Josh does. add on apData
+    %structure like Josh does below (use double for loop structure, just
+    %remove extra)
+
+    deg = rawDataBySessionNeural.currentDeg(:);
+    %find lap boundaries
+    lapStartIdx = 1; %first lap starts at 1
+    lapEndIdx = [];
+
+    for i = 1:length(deg) - 1
+        if deg(i) > 355 && deg(i+1) < 5 %little wiggle room for not exact
+            lapEndIdx = [lapEndIdx; i];
+        end
+    end
+
+    %add final lap if it passes the last RZ
+    if deg(end) > params.Rzones(3) + 20
+        lapEndIdx = [lapEndIdx; length(deg)];
+    end
+
+    numLaps = numel(lapEndIdx);
+    %preallocate output
+    rawDataByLapNeural = struct();
+    fieldsToSplit = ["vrTime","lfpTime","apTime","currentDeg","speed", ...
+                 "speedSmooth","isMoving","rewarded","licked","currentZone"];
+    for f = fieldsToSplit
+        rawDataByLapNeural.(f) = cell(numLaps,)
+
+    %rawDataByLap = load([virmenSessDataPath '\rawDataByLap.mat']);%laps
+    %rawDataByLap = rawDataByLap.rawDataByLap;
 
     %%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%% create sturct %%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%
-    rawDataByLapNeural = [];
+    
     for ii = 1:length(rawDataByLap)%loop through laps
 
         %%%%% index whole session neural struct using virmen lap times %%%%%

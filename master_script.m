@@ -200,6 +200,9 @@ if gatherNeuralData
             virmenSessDataPath = fullfile(dirs.saveoutputstructs, ['Data\Behavior\sessionData\' subj '\' sessDate '_' sessNum '_' trackInfo]);
             neuralRawDataPath = fullfile(dirs.rawdata, [subj '_' sessDate]);
             processedDataPath = fullfile(dirs.processeddata,[subj '_' sessDate '\']);
+            if ~isfield(params, 'Rzones')
+                [params.Azones, params.Rzones, params.NRzones, params.NevRzones] = getZoneInfo_linearJLK(virmen_fileInfo, subj);
+            end
             if ~exist(processedDataPath, 'dir')
                 mkdir(processedDataPath);
             end
