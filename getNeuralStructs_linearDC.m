@@ -258,7 +258,7 @@ if isfile([virmenSessDataPath '\rawDataByLap.mat'])
     %rawDataByLap = rawDataByLap.rawDataByLap;
 
     %%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%% create sturct %%%%%figure out splitting lfp data as well
+    %%%%% create sturct %%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%
     
     for ii = 1:length(rawDataByLapNeural)%loop through laps
@@ -271,7 +271,7 @@ if isfile([virmenSessDataPath '\rawDataByLap.mat'])
         %rawDataByLapNeural(ii).vrTime = rawDataBySessionNeural.vrTime(virmen_lap_start_ind:virmen_lap_end_ind);
         %rawDataByLapNeural(ii).lfpTime = rawDataBySessionNeural.lfpTime(virmen_lap_start_ind:virmen_lap_end_ind);
         %rawDataByLapNeural(ii).apTime = rawDataBySessionNeural.apTime(virmen_lap_start_ind:virmen_lap_end_ind);
-        %rawDataByLapNeural(ii).lfpData = rawDataBySessionNeural.lfpData(:,(rawDataByLapNeural(ii).lfpTime(1)-lfp_ttl_start_ind+1):(rawDataByLapNeural(ii).lfpTime(end)-lfp_ttl_start_ind+1));
+        rawDataByLapNeural(ii).lfpData = rawDataBySessionNeural.lfpData(:,(rawDataByLapNeural(ii).lfpTime(1)):(rawDataByLapNeural(ii).lfpTime(end)));
         for clu = 1:length(rawDataBySessionNeural.apData)
             rawDataByLapNeural(ii).apData(clu).ID = rawDataBySessionNeural.apData(clu).ID;
             rawDataByLapNeural(ii).apData(clu).maxChan = rawDataBySessionNeural.apData(clu).maxChan;
