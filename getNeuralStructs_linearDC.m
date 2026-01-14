@@ -338,23 +338,15 @@ end%if isfile([virmenSessDataPath '\rawDataByLap.mat'])
 if isfile([virmenSessDataPath '\rawDataByTrial.mat'])
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%% load raw virmen data %%%%%skip this, model on the other thing
-    %%%%% idk. other option is to make my rawdatabytrial from rawpos from
-    %%%%% the getgo. lets try that
+    %%%%% load raw virmen data %%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %rawDataByTrial = load([virmenSessDataPath '\rawDataByTrial.mat']);%trials
-    %rawDataByTrial = rawDataByTrial.rawDataByTrial;
+    rawDataByTrial = load([virmenSessDataPath '\rawDataByTrial.mat']);%trials
+    rawDataByTrial = rawDataByTrial.rawDataByTrial;
 
     %%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%% create sturct %%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%
-    %ok, i have the params.rewardzone info. use 
-    if isnan(params.NevRzones(1)) == 1;%no nvr reward zones in params
-        zoneType = 2;%there's only reward and nonreward
-    else
-        zoneType = 3;%there is alt nonreward
-    end
-    %rawDataByTrialNeural = cell(size(rawDataByTrial));
+    rawDataByTrialNeural = cell(size(rawDataByTrial));
     %loop through trials for each zone
     for znType = 1:zoneType %1=reward, 2=nonreward, 3 = alt nonreward
         for znNum = 1:3%always 3 types of zones
