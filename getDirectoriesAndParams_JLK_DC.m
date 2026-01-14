@@ -54,8 +54,8 @@ params.savechnum = {0:63};
 
 %zones
 params.cueSize = 10;                                                        %in degrees, size of wall cue (zone)
-params.gapBefore = 2 * params.cueSize;
-params.gapAfter = 2 * params.cueSize;
+params.gapBefore = 3 * params.cueSize;
+params.gapAfter = 3 * params.cueSize;
 
 %set colors for original and update sessions
 up_colors = cbrewer('seq','Greens',12);

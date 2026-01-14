@@ -90,14 +90,14 @@ if createBehaviorStructs
                 %adapted from getTrialByTrialStats_linearJLK and getSessionStats_linearJLK
                 %Note: only completed laps
                 if ~isfile([saveBehaviorPath '\' 'statsByLap.mat']) || params.rewrite.behavior
-                    getLapBehaviorStats_linearJLK(rawDataBySession, virmen_fileInfo, params, saveBehaviorPath);
+                    getLapBehaviorStats_linearDC(rawDataBySession, virmen_fileInfo, params, saveBehaviorPath);
                 end
 
                 %TRIALS
                 %adapted from getTrialByTrialStats_linearJLK and getSessionStats_linearJLK
                 %Note: uses all trials
                 if ~isfile([saveBehaviorPath '\' 'statsByRewardTrial.mat']) || params.rewrite.behavior
-                    getTrialBehaviorStats_linearJLK(rawDataBySession, virmen_fileInfo, params, saveBehaviorPath);
+                    getTrialBehaviorStats_linearDC(rawDataBySession, virmen_fileInfo, params, saveBehaviorPath);
                 end
 
             elseif allindex(i,6) == 3%Rest session
