@@ -670,5 +670,5 @@ end%if doAUCGroupUpdatePlots
 % % % % figname = fullfile(figdir, sprintf('%s_AUC_across_sessions_first5last5',rocID));
 % % % % print(gcf,figname,'-dpdf','-r300')
 
-
+cd('\\ad.gatech.edu\bme\labs\singer\Danielle\code\AnalysisCode\Neuropixels_analyses');
 end%function
