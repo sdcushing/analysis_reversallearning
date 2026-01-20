@@ -25,8 +25,8 @@ dirs.kilosortPyScript = 'Y:\singer\Danielle\Code\AnalysisCode\Neuropixels_analys
 %general
 params.iden = 'DC'; %JK for default Josh's mice
 params.animals = [21];
-params.datesincl = [];
-params.datesexcl = [];
+params.datesincl = [251118];
+params.datesexcl = [251117];
 params.recday = [];
 params.brainReg = {'CA1'};
 params.probeChannels = {1:64};                                              %64-channel NeuroNexus probe

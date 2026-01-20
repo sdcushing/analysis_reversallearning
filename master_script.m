@@ -39,7 +39,7 @@ end
 [uniqSess, ind] = unique(allindex(:,1:2), 'rows'); %define session as one date
 
 %% Specify what you want to analyze here %%
-createBehaviorStructs = 1;
+createBehaviorStructs = 0;
 plotBehavior = 1;
 gatherNeuralData = 1;
 doDecoding = 1;
@@ -59,6 +59,7 @@ if createBehaviorStructs
         sessDate = num2str(allindex(i,2));
         sessNum = num2str(allindex(i,3));
         processedDataPath = fullfile(dirs.processeddata,[subj '_' sessDate '\']);
+        neuralRawDataPath = fullfile(dirs.rawdata, [subj '_' sessDate]);
         trackInfo = num2str(allindex(i,4));
         virmenDataPath = fullfile(dirs.virmenrawdata, ['\' subj '_' sessDate '_' sessNum '\' 'dataWithLickometer.mat']);
         saveBehaviorPath = fullfile(dirs.saveoutputstructs, ['Data\Behavior\sessionData' '\' subj '\' sessDate '_' sessNum '_' trackInfo]);
@@ -123,7 +124,7 @@ if createBehaviorStructs
     %%%%%%%%%%%%%%%%
     %%%%% ROCs %%%%%
     %%%%%%%%%%%%%%%%
-    addpath('\\ad.gatech.edu\bme\labs\singer\Josh\Code\AnalysisCode\vr_novelty_behavior\functions')%DC go back and fix this so point at these in my own pipeline/folder
+    addpath('\\ad.gatech.edu\bme\labs\singer\Danielle\code\vr_novelty_behavior\functions')
     
     getBehaviorROC_JLK(allindex,dirs,uniqSess,params)
 
@@ -230,11 +231,7 @@ if gatherNeuralData
                 if ~isfolder([processedDataPath '\kilosort4'])
                     sprintf('Running Kilosort4 for %s_%s', subj, sessDate)
                     if params.iden == 'DC'
-                        %files = getfilenums(anrawdatadir);
-
-                        for i = 1:size(files, 2)
-
-                        end
+                        files = getfilenums(anrawdatadir);
                         getKilosort4Out_intan(subj, sessDate, neuralRawDataPath, dirs, files, params)%for Intan
                     else
                         getKilosort4Out(subj, sessDate, neuralRawDataPath, dirs)%for Neuropixels

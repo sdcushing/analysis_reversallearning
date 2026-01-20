@@ -3,7 +3,7 @@ function [Azones, Rzones, NRzones, NevRzones] = getZoneInfo_linearJLK(fileInfo, 
 %determine zones
 if contains(subj, 'DC')
     Rzones = fileInfo.degReward;
-    if strcmp(fileInfo.trackname, "TrackA'")%update track
+    if strcmp(fileInfo.trackname, "TrackA'") || strcmp(fileInfo.sessioninfo, "DC21_251118_5")%update track
         NRzones = [36 206 326];
         NevRzones = [6 186 246];
             if sum(strcmp(subj, {'DC21'})) ~= 0
