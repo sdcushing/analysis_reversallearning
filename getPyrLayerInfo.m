@@ -1,8 +1,8 @@
-function sessionPyrLayerInfo = getPyrLayerInfo(subj, sessDate, sessNum, dirs, params,neuralRawDataPath, saveNeuralPath,  plotPyrLayer, selectManually)
+function sessionPyrLayerInfo = getPyrLayerInfo(subj, sessDate, sessNum, dirs, params,processedDataPath, saveNeuralPath,  plotPyrLayer, selectManually)
 %last checked 10/29/25 JLK
 
 %% load session data %%
-load([neuralRawDataPath '\kilosort4\clusters_allrec.mat'])
+load([processedDataPath '\kilosort4\clusters_allrec.mat'])
 load([saveNeuralPath '\rawDataBySessionNeural.mat'])
 
 %% determine random time based on immobility %%

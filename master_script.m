@@ -39,7 +39,7 @@ end
 [uniqSess, ind] = unique(allindex(:,1:2), 'rows'); %define session as one date
 
 %% Specify what you want to analyze here %%
-createBehaviorStructs = 1;
+createBehaviorStructs = 0;
 plotBehavior = 0;
 gatherNeuralData = 1;
 doDecoding = 1;
@@ -272,7 +272,7 @@ if gatherNeuralData
 
                     %%%%% get pyramidal layer info for this session %%%%%
                     %Note: Uses rawDataBySessionNeural and clusters_allrec structs
-                    if ~isfile([saveNeuralPath '\' 'sessionPyrLayerInfo.mat']) || params.rewrite.pyrLayer
+                    if ~isfile([saveNeuralPath '\' 'sessionPyrLayerInfo.mat']) || params.rewrite.pyrLayer || ~params.iden == 'DC'
                         sprintf('Getting pyramidal layer info for %s_%s_%s', subj, sessDate, sessNum)
                         plotPyrLayer = 1;
                         selectManually = 1;
