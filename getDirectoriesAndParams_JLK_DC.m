@@ -5,6 +5,7 @@ function [dirs, params] = getDirectoriesAndParams_JLK_DC()
 dirs.rawdata = '\\ad.gatech.edu\bme\labs\singer\RawData\DAlesion\';
 dirs.processeddata = '\\ad.gatech.edu\bme\labs\singer\ProcessedData\VR_Novelty_DAlesion\';
 dirs.filters = '\\ad.gatech.edu\bme\labs\singer\Data Extraction and PreProcessing\Intan\Filtering\';
+dirs.code = '\\ad.gatech.edu\bme\labs\singer\Danielle\code\AnalysisCode\Neuropixels_analyses\';
 %behavior
 dirs.virmenrawdata = '\\ad.gatech.edu\bme\labs\singer\Danielle\Behavior\Annular FAM\';
 dirs.virmensessiondata = '\\ad.gatech.edu\bme\labs\singer\Danielle\Behavior\sessionData\';
@@ -33,7 +34,8 @@ params.probeChannels = {1:64};                                              %64-
 params.binsize_ms = 1;                                                      %in ms for monoconnex calculations
 params.binsize_deg = 5;                                                     %in degrees for behavioral analyses
 params.binsize_s = 60;                                                      %in sec for firing rate stability across session
-params.samprate = 20000;                                                    %in Hz for SpikeGadgets acquisition system
+params.samprate = 20000;  
+params.lfp_samprate_down = 2000;%in Hz for SpikeGadgets acquisition system
 params.timeoutZone = 17;
 params.rocID = {'speed', 'lickrate', 'deltalickrate'};
 params.rocMultiplier = [-1 1 1];
@@ -74,6 +76,20 @@ params.colors_fam = og_colors(7:2:end, :); %shades of grey for original
 % params.colors_wideInt = hex2rgb({'#e3f4f7','#aadde8','#72c7d9'});
 % params.colors_pyr = hex2rgb({'#f5d6d6','#e08585','#cb3433'});
 
+%ripples
+params.ripple.nstdEnv = [3 3];%number of standard deviations above mean of envelope for 150-250Hz to detect ripple
+params.ripple.nstdNoise = 10;%detect noise deflections in raw data
+params.ripple.minRipDur = 0.02;%ms
+params.ripple.timeAroundRip = 0.05;%time (ms) around midpoint of rip to compute ratio
+params.ripple.freqNumerator = [100 250];%high frequency numerator
+params.ripple.freqDenominator = [250 400];%high frequency denominator
+params.ripple.ratioThresh = 2;%lowered from 5
+params.ripple.applyCriteria = 1;
+params.ripple.applyHighFreqRatio = 0;
+params.ripple.applyTDBRatio = 0;
+params.ripple.applySpeed = 1;
+params.ripple.applyMUA = 1;
+
 %cell type identification
 params.spikewidthTh = 0.5; %in ms
 params.autocorrTh = 4.5; %in ms
@@ -105,13 +121,13 @@ params.longtimescales = 0;
 params.refactoredcalc = 0;
 
 %to overwrite existing files or not
-params.rewrite.behavior = 1;
+params.rewrite.behavior = 0;
 params.rewrite.ROC = 1;
 params.rewrite.clusters = 0;
 params.rewrite.cell_metrics = 0;
-params.rewrite.neuralStructs = 1;
+params.rewrite.neuralStructs = 0;
 params.rewrite.cellYield = 0;
 params.rewrite.pyrLayer = 0;
-params.rewrite.ripples = 1;
-params.rewrite.decodingData = 1;
-params.rewrite.decodingResults = 1;
+params.rewrite.ripples = 0;
+params.rewrite.decodingData = 0;
+params.rewrite.decodingResults = 0;

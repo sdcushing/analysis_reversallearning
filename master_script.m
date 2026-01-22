@@ -52,7 +52,7 @@ if createBehaviorStructs
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     for i = 1:size(allindex,1) %loop through every session
-        addpath('\\ad.gatech.edu\bme\labs\singer\Daneille\code\vr_novelty_behavior\commonfunc')
+        addpath('\\ad.gatech.edu\bme\labs\singer\Danielle\code\vr_novelty_behavior\commonfunc')
         addpath('\\ad.gatech.edu\bme\labs\singer\Danielle\code\vr_novelty_behavior\functions')
         %%%%% session info %%%%%
         subj = [params.iden num2str(allindex(i,1))];
@@ -231,7 +231,7 @@ if gatherNeuralData
                 if ~isfolder([processedDataPath '\kilosort4'])
                     sprintf('Running Kilosort4 for %s_%s', subj, sessDate)
                     if params.iden == 'DC'
-                        files = getfilenums(anrawdatadir);
+                        files = getfilenums(neuralRawDataPath);
                         getKilosort4Out_intan(subj, sessDate, neuralRawDataPath, dirs, files, params)%for Intan
                     else
                         getKilosort4Out(subj, sessDate, neuralRawDataPath, dirs)%for Neuropixels
@@ -263,16 +263,14 @@ if gatherNeuralData
 
                     %%%%% get cell yield info for this session %%%%%
                     %Note: Uses rawDataBySessionNeural and only do session 3
-                    if str2num(sessNum) == 3
-                        if ~isfile([saveNeuralPath '\' 'cellYield.mat']) || params.rewrite.cellYield
+                    if ~isfile([saveNeuralPath '\' 'cellYield.mat']) || params.rewrite.cellYield
                             sprintf('Getting cell yield info for %s_%s_%s', subj, sessDate, sessNum)
                             getCellYieldInfo(saveNeuralPath)
-                        end
                     end
 
                     %%%%% get pyramidal layer info for this session %%%%%
                     %Note: Uses rawDataBySessionNeural and clusters_allrec structs
-                    if ~isfile([saveNeuralPath '\' 'sessionPyrLayerInfo.mat']) || params.rewrite.pyrLayer || ~params.iden == 'DC'
+                    if ~isfile([saveNeuralPath '\' 'sessionPyrLayerInfo.mat']) || params.rewrite.pyrLayer
                         sprintf('Getting pyramidal layer info for %s_%s_%s', subj, sessDate, sessNum)
                         plotPyrLayer = 1;
                         selectManually = 1;
@@ -284,7 +282,7 @@ if gatherNeuralData
                     if ~isfield([saveNeuralPath '\' 'rawDataBySessionNeural'], 'ripplesGood') || params.rewrite.ripples
                         sprintf('Getting ripples for %s_%s_%s', subj, sessDate, sessNum)
                         plotRipples = 1;
-                        getRipplesTmp(dirs, params, saveNeuralPath, plotRipples)
+                        getRipplesTmp_DC(dirs, params, saveNeuralPath, plotRipples)
                     end
 
 

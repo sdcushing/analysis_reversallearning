@@ -1,6 +1,16 @@
 function sessionPyrLayerInfo = getPyrLayerInfo(subj, sessDate, sessNum, dirs, params,processedDataPath, saveNeuralPath,  plotPyrLayer, selectManually)
 %last checked 10/29/25 JLK
 
+%DC updating to make early exit for my short probes
+if strcmp(params.iden, 'DC')
+    sessionPyrLayerInfo.pyrLayerCA1 = 1:64;
+    sessionPyrLayerInfo.pyrLayerCA3 = NaN;
+    sessionPyrLayerInfo.note  = 'Skipped full pyr layer processing for DC';
+    %% save data %%
+    filename = [saveNeuralPath '\' 'sessionPyrLayerInfo.mat'];
+    save(filename, 'sessionPyrLayerInfo', '-v7.3')
+    return %skip rest of function
+end
 %% load session data %%
 load([processedDataPath '\kilosort4\clusters_allrec.mat'])
 load([saveNeuralPath '\rawDataBySessionNeural.mat'])

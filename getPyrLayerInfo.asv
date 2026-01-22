@@ -1,8 +1,16 @@
-function sessionPyrLayerInfo = getPyrLayerInfo(subj, sessDate, sessNum, dirs, params,neuralRawDataPath, saveNeuralPath,  plotPyrLayer, selectManually)
+function sessionPyrLayerInfo = getPyrLayerInfo(subj, sessDate, sessNum, dirs, params,processedDataPath, saveNeuralPath,  plotPyrLayer, selectManually)
 %last checked 10/29/25 JLK
 
+%DC updating to make early exit for my short probes
+if strcmp(params.iden, 'DC')
+    sessionPyrLayerInfo.pyrLayerCA1 = 0:63;
+    sessionPyrLayerInfo.pyrLayerCA3 = NaN;
+    sessionPyrLayerInfo.note  = 'Skipped full pyr layer processing for DC';
+    %% save data %%
+    filename = [saveNeuralPath '\' 'sessionPyrLayerInfo.mat'];
+    save(filename, 'sessionPyrLayerInfo', '-v7.3')
 %% load session data %%
-load([neuralRawDataPath '\kilosort4\clusters_allrec.mat'])
+load([processedDataPath '\kilosort4\clusters_allrec.mat'])
 load([saveNeuralPath '\rawDataBySessionNeural.mat'])
 
 %% determine random time based on immobility %%
@@ -321,7 +329,11 @@ if plotPyrLayer || selectManually || isempty(pyrLayerCA3) || isempty(pyrLayerCA1
     sessionPyrLayerInfo.pyrLayerCA3 = CA3_deep:CA3_shallow;
 
     %% save fig %%
-    filename = [dirs.savefigures '\Neuropixels\DepthPlots\' subj '_' sessDate '_' sessNum '\pyrLayer'];
+    figdir = [dirs.savefigures '\Neuropixels\DepthPlots\' subj '_' sessDate '_' sessNum];
+    if ~isfolder(figdir)
+        mkdir(figdir)
+    end
+    filename = [figdir '\pyrLayer'];
     print(gcf,filename,'-dpng','-r300')
  
 end%if plotPyrLayer
@@ -331,39 +343,6 @@ filename = [saveNeuralPath '\' 'sessionPyrLayerInfo.mat'];
 save(filename, 'sessionPyrLayerInfo', '-v7.3')
 
 %% accessory function for interactive plot
-% function updatePlot(plotNum, ax, lbl)
-%     % If lbl not passed (from slider callback), retrieve from UserData
-%     if nargin < 3
-%         lbl = ax.Parent.Children(1).UserData.lbl;
-%     end
-% 
-%     % Clear axes
-%     cla(ax);
-% 
-%     % Plot based on slider value
-%     switch plotNum
-%         case 1
-%             x = linspace(0, 2*pi, 100);
-%             plot(ax, x, sin(x), 'LineWidth', 2);
-%             title(ax, 'Sine Wave');
-%         case 2
-%             x = linspace(0, 2*pi, 100);
-%             plot(ax, x, cos(x), 'r', 'LineWidth', 2);
-%             title(ax, 'Cosine Wave');
-%         case 3
-%             x = linspace(0, 2*pi, 100);
-%             plot(ax, x, sin(x).*cos(x), 'g', 'LineWidth', 2);
-%             title(ax, 'Sine × Cosine');
-%     end
-% 
-%     % Update label text
-%     lbl.String = sprintf('Plot %d', plotNum);
-% end
-
-
-end%function
-
-
 function updatePlot(plotNum, ax, inputdata, lbl, params)
     % If lbl not passed (from slider callback), retrieve from UserData
     if nargin < 3
@@ -395,3 +374,6 @@ function updatePlot(plotNum, ax, inputdata, lbl, params)
     % Update label text
     lbl.String = sprintf('Plot %d', plotNum);
 end
+
+
+end%function
