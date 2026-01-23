@@ -52,13 +52,14 @@ if createBehaviorStructs
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     for i = 1:size(allindex,1) %loop through every session
-        addpath('\\ad.gatech.edu\bme\labs\singer\Josh\Code\AnalysisCode\vr_novelty_behavior\commonfunc')%DC fix 
-        addpath('\\ad.gatech.edu\bme\labs\singer\Josh\Code\AnalysisCode\vr_novelty_behavior\functions')%DC fix 
+        addpath('\\ad.gatech.edu\bme\labs\singer\Danielle\code\vr_novelty_behavior\commonfunc')
+        addpath('\\ad.gatech.edu\bme\labs\singer\Danielle\code\vr_novelty_behavior\functions')
         %%%%% session info %%%%%
         subj = [params.iden num2str(allindex(i,1))];
         sessDate = num2str(allindex(i,2));
         sessNum = num2str(allindex(i,3));
         processedDataPath = fullfile(dirs.processeddata,[subj '_' sessDate '\']);
+        neuralRawDataPath = fullfile(dirs.rawdata, [subj '_' sessDate]);
         trackInfo = num2str(allindex(i,4));
         virmenDataPath = fullfile(dirs.virmenrawdata, ['\' subj '_' sessDate '_' sessNum '\' 'dataWithLickometer.mat']);
         saveBehaviorPath = fullfile(dirs.saveoutputstructs, ['Data\Behavior\sessionData' '\' subj '\' sessDate '_' sessNum '_' trackInfo]);
@@ -74,12 +75,18 @@ if createBehaviorStructs
             %adapted from virmenToStruct_linearNJ.m
             %Note: If using update track, user may need to change the reward and non-reward locations.
             [~, virmen_fileInfo] = virmenToStruct_linearJLK(virmenDataPath, saveBehaviorPath);
+            if virmen_fileInfo.sessioninfo == 'DC21_251118_5'
+                virmen_fileInfo.trackname = 'TrackA''';
+            end
+            %rhd2mat_tempbin_DC(neuralRawDataPath, processedDataPath, sessNum, params);
+            disp(['Extracting Virmen Data: ', subj, ' ', sessDate, ' ', sessNum])
             anvrdatafolder = fullfile(dirs.virmenrawdata, [subj '_', sessDate, '_',  sessNum]);
             Args = {sessNum, anvrdatafolder, processedDataPath, params};
-            feval(params.exportbehaviorfunc, Args{:});
+            %feval(params.exportbehaviorfunc, Args{:});
             rawposfile = fullfile(processedDataPath, sprintf('rawpos%s.mat', sessNum));
             rawpos = load(rawposfile);
-            rawpos = rawpos = rawpos{1,21}{1,251118}{1,2};
+            rawDataBySession = rawpos.rawpos;
+            save(fullfile(saveBehaviorPath, 'rawDataBySession.mat'), 'rawDataBySession');
             [params.Azones, params.Rzones, params.NRzones, params.NevRzones] = getZoneInfo_linearJLK(virmen_fileInfo, subj);
 
             %%%%% create behavior structs %%%%%
@@ -89,14 +96,14 @@ if createBehaviorStructs
                 %adapted from getTrialByTrialStats_linearJLK and getSessionStats_linearJLK
                 %Note: only completed laps
                 if ~isfile([saveBehaviorPath '\' 'statsByLap.mat']) || params.rewrite.behavior
-                    getLapBehaviorStats_linearJLK(rawDataBySession, virmen_fileInfo, params, saveBehaviorPath);
+                    getLapBehaviorStats_linearDC(rawDataBySession, virmen_fileInfo, params, saveBehaviorPath);
                 end
 
                 %TRIALS
                 %adapted from getTrialByTrialStats_linearJLK and getSessionStats_linearJLK
                 %Note: uses all trials
                 if ~isfile([saveBehaviorPath '\' 'statsByRewardTrial.mat']) || params.rewrite.behavior
-                    getTrialBehaviorStats_linearJLK(rawDataBySession, virmen_fileInfo, params, saveBehaviorPath);
+                    getTrialBehaviorStats_linearDC(rawDataBySession, virmen_fileInfo, params, saveBehaviorPath);
                 end
 
             elseif allindex(i,6) == 3%Rest session
@@ -120,9 +127,9 @@ if createBehaviorStructs
     %%%%%%%%%%%%%%%%
     %%%%% ROCs %%%%%
     %%%%%%%%%%%%%%%%
-    addpath('\\ad.gatech.edu\bme\labs\singer\Josh\Code\AnalysisCode\vr_novelty_behavior\functions')%DC go back and fix this so point at these in my own pipeline/folder
+    addpath('\\ad.gatech.edu\bme\labs\singer\Danielle\code\vr_novelty_behavior\functions')
     
-    getBehaviorROC_JLK(allindex,dirs,uniqSess,params)
+    getBehaviorROC_DC(allindex,dirs,uniqSess,params)
 
 end%if createBehaviorStructs
 
@@ -164,12 +171,12 @@ if plotBehavior
         if plotByDateOrType == 0 %plotting by date using plotDate, whichDay irrelevant
             thisp = size(plotDate,2);
             for p = 1:thisp
-                plotBehaviorLapAndSession_JLK(anindex,an,dirs,params,plotByDateOrType,plotDate(an,p),whichDay,sessionToPlot,doSessionPlots,doLapPlots,plotLapByBlock,numTrPerBlock,whichBlocks)
+                plotBehaviorLapAndSession_DC(anindex,an,dirs,params,plotByDateOrType,plotDate(an,p),whichDay,sessionToPlot,doSessionPlots,doLapPlots,plotLapByBlock,numTrPerBlock,whichBlocks)
             end
         elseif plotByDateOrType == 1 || plotByDateOrType == 2 || plotByDateOrType == 3 || plotByDateOrType == 4 %plotting by type using whichDay, plotDate irrelevant
             thisp = length(whichDay);
             for p = 1:thisp
-                plotBehaviorLapAndSession_JLK(anindex,an,dirs,params,plotByDateOrType,plotDate(1),whichDay(p),sessionToPlot,doSessionPlots,doLapPlots,plotLapByBlock,numTrPerBlock,whichBlocks)
+                plotBehaviorLapAndSession_DC(anindex,an,dirs,params,plotByDateOrType,plotDate(1),whichDay(p),sessionToPlot,doSessionPlots,doLapPlots,plotLapByBlock,numTrPerBlock,whichBlocks)
             end
         end%if plotByDateOrType == 0
     end%an
@@ -187,7 +194,7 @@ if plotBehavior
         doROCPlots = 0; %ROC plots across sessions/animals, separated by track
         doAUCIndPlots = 1; %AUC plots across sessions for each animal
         doAUCGroupUpdatePlots = 0;%AUC plots across original sessions and update sessions by control vs. experimental group
-        plotBehaviorROC_JLK(allindex, uniqSess, dirs, ROC, params.rocID{id}, params, doROCPlots, doAUCIndPlots, doAUCGroupUpdatePlots)
+        plotBehaviorROC_DC(allindex, uniqSess, dirs, ROC, params.rocID{id}, params, doROCPlots, doAUCIndPlots, doAUCGroupUpdatePlots)
     end
 
 end%if plotBehavior
@@ -207,9 +214,6 @@ if gatherNeuralData
             virmenSessDataPath = fullfile(dirs.saveoutputstructs, ['Data\Behavior\sessionData\' subj '\' sessDate '_' sessNum '_' trackInfo]);
             neuralRawDataPath = fullfile(dirs.rawdata, [subj '_' sessDate]);
             processedDataPath = fullfile(dirs.processeddata,[subj '_' sessDate '\']);
-            if ~isfield(params, 'Rzones')
-                [params.Azones, params.Rzones, params.NRzones, params.NevRzones] = getZoneInfo_linearJLK(virmen_fileInfo, subj);
-            end
             if ~exist(processedDataPath, 'dir')
                 mkdir(processedDataPath);
             end
@@ -226,13 +230,9 @@ if gatherNeuralData
                 %%%%% create single ap bin file for all recordings on a given day %%%%%
                 if ~isfolder([processedDataPath '\kilosort4'])
                     sprintf('Running Kilosort4 for %s_%s', subj, sessDate)
+                    if 
                     if params.iden == 'DC'
-                        files = getfilenums(anrawdatadir);
-                        rhd2mat_tempbin_DC(neuralRawDataPath, processedDataPath, files, params);
-                        disp(['Extracting Virmen Data: ', subj, ' ', sessDate])
-                        for i = 1:size(files, 2)
-
-                        end
+                        files = getfilenums(neuralRawDataPath);
                         getKilosort4Out_intan(subj, sessDate, neuralRawDataPath, dirs, files, params)%for Intan
                     else
                         getKilosort4Out(subj, sessDate, neuralRawDataPath, dirs)%for Neuropixels
@@ -264,11 +264,9 @@ if gatherNeuralData
 
                     %%%%% get cell yield info for this session %%%%%
                     %Note: Uses rawDataBySessionNeural and only do session 3
-                    if str2num(sessNum) == 3
-                        if ~isfile([saveNeuralPath '\' 'cellYield.mat']) || params.rewrite.cellYield
+                    if ~isfile([saveNeuralPath '\' 'cellYield.mat']) || params.rewrite.cellYield
                             sprintf('Getting cell yield info for %s_%s_%s', subj, sessDate, sessNum)
                             getCellYieldInfo(saveNeuralPath)
-                        end
                     end
 
                     %%%%% get pyramidal layer info for this session %%%%%
@@ -285,7 +283,7 @@ if gatherNeuralData
                     if ~isfield([saveNeuralPath '\' 'rawDataBySessionNeural'], 'ripplesGood') || params.rewrite.ripples
                         sprintf('Getting ripples for %s_%s_%s', subj, sessDate, sessNum)
                         plotRipples = 1;
-                        getRipplesTmp(dirs, params, saveNeuralPath, plotRipples)
+                        getRipplesTmp_DC(dirs, params, saveNeuralPath, plotRipples)
                     end
 
 

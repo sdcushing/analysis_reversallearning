@@ -230,6 +230,9 @@ if gatherNeuralData
                 %%%%% create single ap bin file for all recordings on a given day %%%%%
                 if ~isfolder([processedDataPath '\kilosort4'])
                     sprintf('Running Kilosort4 for %s_%s', subj, sessDate)
+                    if strcmp(sessDate, '251118')
+                        dirs.kilosortPyScript = 'Y:\singer\Danielle\Code\AnalysisCode\Neuropixels_analyses\runKilosort4_CN.py';
+                    end
                     if params.iden == 'DC'
                         files = getfilenums(neuralRawDataPath);
                         getKilosort4Out_intan(subj, sessDate, neuralRawDataPath, dirs, files, params)%for Intan

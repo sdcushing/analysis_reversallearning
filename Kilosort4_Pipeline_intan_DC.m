@@ -35,7 +35,7 @@ for r = 1:size(tmpFiles,2)
     props.fileNums(r) = r;
 end%r
 
-kilosort_path = [processedDataPath '\' 'kilosort4'];
+kilosort_path = [processedDataPath 'kilosort4'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%% create raw cluster structures using phy2 output %%%%%
