@@ -22,6 +22,8 @@ if __name__ == "__main__":
     settings['tmin'] = 0  # default. start time in seconds
     settings['tmax'] = np.inf  # default. end time in seconds. by default all data is used but you can set a specific time range if there's noise in the beginning or end of your recording
     settings['probe_path'] = r"C:\\Users\scushing6\Desktop\TempKilosort\CN_doublesided_P2D_KSchmap.mat"
+    settings['Th_universal'] = 8 # default is 9
+    settings['Th_learned'] = 7 # default is 8,  reducing to handle cells appearing/disappearing
     
     parser = argparse.ArgumentParser(description='Run Kilosort4 on Neuropixels data.')
     parser.add_argument('--data_dir', type=str, required=True, help='Path to the directory containing the neural data.')

@@ -42,7 +42,7 @@ end
 createBehaviorStructs = 0;
 plotBehavior = 0;
 gatherNeuralData = 1;
-doDecoding = 1;
+doDecoding = 0;
 
 %% Create behavior data structs %%
 if createBehaviorStructs
@@ -282,7 +282,10 @@ if gatherNeuralData
 
                     %%%%% get ripples for this session %%%%%
                     %Note: Uses rawDataBySessionNeural struct and chooses channel with most ripples that pass criteria
-                    if ~isfield([saveNeuralPath '\' 'rawDataBySessionNeural'], 'ripplesGood') || params.rewrite.ripples
+                    if ~exist('rawDataBySessionNeural', 'var')
+                        load(fullfile(saveNeuralPath,'rawDataBySessionNeural.mat'));
+                    end
+                    if ~isfield(rawDataBySessionNeural, 'ripplesGood') || params.rewrite.ripples
                         sprintf('Getting ripples for %s_%s_%s', subj, sessDate, sessNum)
                         plotRipples = 1;
                         getRipplesTmp_DC(dirs, params, saveNeuralPath, plotRipples)
