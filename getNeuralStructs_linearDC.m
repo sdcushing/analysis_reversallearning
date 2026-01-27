@@ -89,7 +89,7 @@ numFolders = numel(names);
 firstFile = fullfile(lfp_filepath, names{1}, sprintf('raweeg%s.mat', sessNum));
 tmp = load(firstFile);
 samples = numel(tmp.raweeg.data);
-lfp_data = zeros(numFolders, samples);
+lfp_data = zeros(numFolders, samples/10);%want size to fit downsampled data (20k/2k)
 % Initialize metadata structure
 lfp_meta = struct();
 lfp_meta.samprate = tmp.raweeg.samprate;   % same for all files
@@ -126,8 +126,7 @@ end
 %will want to save lfp.meta somewhere as well
 lfp_meta.downsamplerate = lfp_samprate_down;
 %downsample from 20000 to 2000 Hz for ripple filter later
-% lfp_samprate_down = 2000;
-% downSamp = R.samprate/lfp_samprate_down;
+
 % lfp_data = lfp_data(:,1:downSamp:end);
 
 %need to filter outliers + downsample instead. filter works on individual
@@ -151,7 +150,7 @@ if params.rm60HzNoise
 end%params.rm60HzNoise
 
 %determine lfp start/end times
-virmen_rec_time_lfp = round(rawDataBySession.ephysInd/downSamp);%20k/2k = 10 (og samprate/downsamp)
+virmen_rec_time_lfp = round(rawDataBySession.ephysInd/lfp_samprate_down);%20k/2k = 10 (og samprate/downsamp)
 
 % %ensure last virmen data index is around last lfp ttl index
 % if abs( (lfp_ttl_end_ind/lfp_samprate_down) - (virmen_rec_time_lfp(end)/lfp_samprate_down) ) > 1%seconds
