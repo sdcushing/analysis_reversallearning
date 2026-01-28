@@ -1,4 +1,4 @@
-function [phase, env, filtdata] = filtereeg2_DC(eeg, kernel, smoothing_kernel_rip)
+function [phase, env, filtdata] = filtereeg2_DC(eeg, kernel)
 %based on filtereeg2_intan, but compatible with getRipplesDC
 %inputs
 %   eeg - filtered lfp data, size channelsxsamples
@@ -11,7 +11,6 @@ for chCtr = 1:size(eeg, 1)
     hdata = hilbert(filtdata(chCtr,:));
     phase(chCtr,:) = angle(hdata);
     env(chCtr,:) = abs(hdata);
-    env(chCtr,:) = smoothvect(env(chCtr,:), smoothing_kernel_rip);%smooth env
     clear hdata
 end
 

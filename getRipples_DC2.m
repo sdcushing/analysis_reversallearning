@@ -59,7 +59,19 @@ tmpDat = rawDataBySessionNeural.lfpData;
 
 %make ripple filtered eeg traces - based on ripplefileprocess2 and
 %filtereeg2_intan. add functionality for other frequency bands
-[ripple.phase, ripple.env, ripple.filtdata] = filtereeg2_DC(tmpDat, ripplefilter.kernel, smoothing_kernel_rip);
+[ripple.phase, ripple.env, ripple.filtdata] = filtereeg2_DC(tmpDat, ripplefilter.kernel);
+%getting other frequencies for ripple outlier removal
+[theta.phase, theta.env, theta.filtdata] = filtereeg2_DC(tmpDat, thetafilter.kernel);
+[beta.phase, beta.env, beta.filtdata] = filtereeg2_DC(tmpDat, betafilter.kernel);
+[delta.phase, delta.env, delta.filtdata] = filtereeg2_DC(tmpDat, deltafiler.kernel);
+tbdratio = theta.filtdata/(beta.filtdata + delta.filtdata);
+    smoothing_width = 1; % % define the standard deviation for the Gaussian smoother
+    kernel = gaussian(smoothing_width*2000, ceil(8*smoothing_width*2000));%assumes samprate is 2000, should be stored in
+    %rawDataBySessionNeural.lfpmeta.samprate, but currently shows 20k.
+    %check lfpmeta saving properly in getNeuralStructs
+for i = 1:size(tbdratio, 1)
+    tbdratio(i, :) = smoothvect(tdratio(i,:), kernel);
+end
 
 %actually detect ripples - updated extractripples3 rather then
 %retype it all
