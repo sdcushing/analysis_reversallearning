@@ -43,9 +43,7 @@ load([dirs.code 'betafilter.mat'])
 load([dirs.code 'deltafilter.mat'])
 
 %%%%% add filter description and parameters %%%%%
-ripple.descript = ripplefilter.descript;
-ripple.kernel = ripplefilter.kernel;
-ripple.samprate = ripplefilter.samprate;
+
 smoothing_width_rip = 0.004; % 4 ms
 smoothing_kernel_rip = gaussian(smoothing_width_rip*ripple.samprate, ceil(8*smoothing_width_rip*ripple.samprate));
 smoothing_width_tdb = 1; % 1 s
@@ -54,20 +52,18 @@ minRipDur = round(params.ripple.minRipDur * ripple.samprate);
 tmpDat = rawDataBySessionNeural.lfpData;
 
 %josh has some noise removal here. not going to worry about that right now,
-%but should consider at some point
+%but should consider at some point. I have outlier removal when i filter +
+%downsample lfp in getneuralstructs
 
-%make ripple filtered eeg traces
+%make ripple filtered eeg traces - based on ripplefileprocess2 and
+%filtereeg2_intan. add functionality for other frequency bands
+ripple = filtereeg2_DC(tmpDat, ripplefilter.kernel, smoothing_kernel_rip);
+ripple.descript = ripplefilter.descript;
+ripple.kernel = ripplefilter.kernel;
+ripple.samprate = ripplefilter.samprate;
 
-for chCtr = 1:length(layerChans)
-    chCtr = chCtr+1;
-    %ripple filter (150-250 Hz)
-    ripple.filtdata(chCtr,:) = filtfilt(ripplefilter.kernel, 1 , tmpDat(chCtr,:));
+%actually detect ripples - gonna make/update extractripples3 rather then
+%retype it all. just need to remove directory info and point to correct
+%data
 
-    %Hilbert transform ripple data
-    hdata = hilbert(ripple.filtdata(chCtr,:));
-    ripple.phase(chCtr,:) = angle(hdata);
-    ripple.env(chCtr,:) = abs(hdata);
-    ripple.env(chCtr,:) = smoothvect(ripple.env(chCtr,:), smoothing_kernel_rip);%smooth env
-    clear hdata
-end
 
