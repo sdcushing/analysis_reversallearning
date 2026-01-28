@@ -43,7 +43,9 @@ load([dirs.code 'betafilter.mat'])
 load([dirs.code 'deltafilter.mat'])
 
 %%%%% add filter description and parameters %%%%%
-
+ripple.descript = ripplefilter.descript;
+ripple.kernel = ripplefilter.kernel;
+ripple.samprate = ripplefilter.samprate;
 smoothing_width_rip = 0.004; % 4 ms
 smoothing_kernel_rip = gaussian(smoothing_width_rip*ripple.samprate, ceil(8*smoothing_width_rip*ripple.samprate));
 smoothing_width_tdb = 1; % 1 s
@@ -57,13 +59,16 @@ tmpDat = rawDataBySessionNeural.lfpData;
 
 %make ripple filtered eeg traces - based on ripplefileprocess2 and
 %filtereeg2_intan. add functionality for other frequency bands
-ripple = filtereeg2_DC(tmpDat, ripplefilter.kernel, smoothing_kernel_rip);
-ripple.descript = ripplefilter.descript;
-ripple.kernel = ripplefilter.kernel;
-ripple.samprate = ripplefilter.samprate;
+[ripple.phase, ripple.env, ripple.filtdata] = filtereeg2_DC(tmpDat, ripplefilter.kernel, smoothing_kernel_rip);
 
-%actually detect ripples - gonna make/update extractripples3 rather then
-%retype it all. just need to remove directory info and point to correct
-%data
+%actually detect ripples - updated extractripples3 rather then
+%retype it all
+ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv)%options for more inputs, but not fully
+%functional yet. on DC todo list
 
+%josh has some exclusion criteria for high frequency noise ripples. can
+%work in if needed
+
+rawDataBySessionNeural.ripplesGood = r
+end
 

@@ -288,7 +288,7 @@ if gatherNeuralData
                     if ~isfield(rawDataBySessionNeural, 'ripplesGood') || params.rewrite.ripples
                         sprintf('Getting ripples for %s_%s_%s', subj, sessDate, sessNum)
                         plotRipples = 1;
-                        getRipples_DC(dirs, params, saveNeuralPath, plotRipples)
+                        getRipples_DC2(dirs, params, saveNeuralPath, plotRipples)
                     end
                     % if ~isfield(rawDataBySessionNeural, 'ripplesGood') || params.rewrite.ripples
                     %     ripplefileprocess2(chanprocesseddatadir,['eeg',num2str(index(:,3))], dirs.filterdir, params.ripfilterfile)
