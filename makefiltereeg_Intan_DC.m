@@ -1,4 +1,4 @@
-function [eeg, outlierthresh, numoutlierperiods] = makefiltereeg_Intan_DC(raweeg, freq, eegsamprate, outliernstd)
+function [eeg, outlierthresh, numoutlierperiods, outlierindices, outlierperiods] = makefiltereeg_Intan_DC(raweeg, freq, eegsamprate, outliernstd)
 %
 % INPUTS
 % freq -- frequencies for bandpass filtering, usually [1 300] for typical

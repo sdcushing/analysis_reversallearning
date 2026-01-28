@@ -109,7 +109,7 @@ for i = 1:numFolders
     R = S.raweeg;
 
     %filter EEG
-    [eeg, outlierthresh, numoutlierperiods] = makefiltereeg_Intan_DC(R, params.filteegfreq, params.eegsamprate, params.outliernstd);
+    [eeg, outlierthresh, numoutlierperiods, outlierindices, outlierperiods] = makefiltereeg_Intan_DC(R, params.filteegfreq, params.eegsamprate, params.outliernstd);
 
     % Store LFP data
     lfp_data(i, :) = double(eeg.data);
@@ -121,6 +121,8 @@ for i = 1:numFolders
     lfp_meta.gapInfo{i}       = R.gapInfo;
     lfp_meta.outlierthresh{i}    = outlierthresh;
     lfp_meta.numoutlierperiods{i} = numoutlierperiods;
+    lfp_meta.outlierindices{i} = outlierindices;
+    lfp_meta.outlierperiods{i} = outlierperiods;
     
 end
 %will want to save lfp.meta somewhere as well

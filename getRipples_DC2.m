@@ -66,9 +66,10 @@ tmpDat = rawDataBySessionNeural.lfpData;
 ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv)%options for more inputs, but not fully
 %functional yet. on DC todo list
 
-%josh has some exclusion criteria for high frequency noise ripples. can
-%work in if needed. for now, i'm going to store good ripples as ripples
-%from best channel, bad ripples as the rest
+%bad ripples are ripples that do not pass criteria. based on
+%outlierindices_allchan and ripplepostfilesprecess2
+%find outliers
+outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfpmeta);%fill out
 
 
 end

@@ -1,0 +1,32 @@
+function outlierindices_allchan = rip_outlierexcludeallchan_DC(lfp_meta, processeddatadir, sessindex,  files, lfpChans)
+% For files with 3 Number index instead of 4.
+% OUTPUTS
+%   outlierindices -     cell array of outlier indices for each file
+%
+% run before ripplepostfileprocess2 to exclude ripples that occur during
+% outliers on any channel
+%inputs
+%   
+
+    %loop through all of the channels for that file
+for c = 1:size(lfp_meta.outlierindices, 1) %loop through all channels
+        chanIdx = lfpChans(c); 
+        anprocesseddatadir = [processeddatadir, num2str(chanIdx), '/'];
+        tmpflist = dir([anprocesseddatadir, '*eeg',num2str(files(f)),'.mat']);
+        if ~isempty(tmpflist)
+            flist{f} =  sprintf('%s%s', anprocesseddatadir, tmpflist(1).name);
+        end
+
+        %load files
+        load(flist{f}) %the eeg file
+        filenumber = size(eeg{sessindex(1)}{sessindex(2)},2); %append filenumber
+        index = [sessindex filenumber chanIdx];
+
+        %find  unique outliers for each file
+        if any(eeg{index(1)}{index(2)}{index(3)}.outlierindices)
+            outlierstemp = [outlierstemp, eeg.outlierindices];
+        end
+    end
+    outliers_allchan = unique(outlierstemp);
+    outlierindices_allchan{f} = outliers_allchan;
+end
