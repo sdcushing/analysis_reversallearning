@@ -59,18 +59,17 @@ tmpDat = rawDataBySessionNeural.lfpData;
 
 %make ripple filtered eeg traces - based on ripplefileprocess2 and
 %filtereeg2_intan. add functionality for other frequency bands
-[ripple.phase, ripple.env, ripple.filtdata] = filtereeg2_DC(tmpDat, ripplefilter.kernel);
+[ripple.phase, ripple.env, ripple.data, ripple.samprate] = filtereeg2_DC(tmpDat, rawDataBySessionNeural.lfp_meta.samprate, ripplefilter);
 %getting other frequencies for ripple outlier removal
-[theta.phase, theta.env, theta.filtdata] = filtereeg2_DC(tmpDat, thetafilter.kernel);
-[beta.phase, beta.env, beta.filtdata] = filtereeg2_DC(tmpDat, betafilter.kernel);
-[delta.phase, delta.env, delta.filtdata] = filtereeg2_DC(tmpDat, deltafiler.kernel);
-tbdratio = theta.filtdata/(beta.filtdata + delta.filtdata);
+[theta.phase, theta.env, theta.data, theta.samprate] = filtereeg2_DC(tmpDat, thetafilter.kernel);
+[beta.phase, beta.env, beta.data, beta.samprate] = filtereeg2_DC(tmpDat, betafilter.kernel);
+[delta.phase, delta.env, delta.data, delta.samprate] = filtereeg2_DC(tmpDat, deltafiler.kernel);
+tbdratio.data = theta.data/(beta.data + delta.data);
     smoothing_width = 1; % % define the standard deviation for the Gaussian smoother
-    kernel = gaussian(smoothing_width*2000, ceil(8*smoothing_width*2000));%assumes samprate is 2000, should be stored in
-    %rawDataBySessionNeural.lfpmeta.samprate, but currently shows 20k.
-    %check lfpmeta saving properly in getNeuralStructs
+    kernel = gaussian(smoothing_width*rawDataBySessionNeural.lfp_meta.downsamplerate, ...
+        ceil(8*smoothing_width*rawDataBySessionNeural.lfp_meta.downsamplerate));
 for i = 1:size(tbdratio, 1)
-    tbdratio(i, :) = smoothvect(tdratio(i,:), kernel);
+    tbdratio.data(i, :) = smoothvect(tdratio.data(i,:), kernel);
 end
 
 %actually detect ripples - updated extractripples3 rather then
@@ -83,6 +82,10 @@ ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstd
 %find outliers
 outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfpmeta);%fill out
 
+%based on ripplepostfileprocess2, updated to be compatible with this
+%pipeline. still need to allow to loop through the channels
+ripplepostfileprocess2_DC(ripples, theta, tdbratio, eeg, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
+    params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan)
 
 end
 

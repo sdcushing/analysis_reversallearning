@@ -3,11 +3,10 @@ function [phase, env, filtdata, samprate] = filtereeg2_DC(eeg, samplerate, filte
 %inputs
 %   eeg - filtered lfp data, size channelsxsamples
 %   kernal - kernal for the filter
-if samplerate ~= filter.samprate
-    error('filterstruct.samprate does not match eegstruct.samprate');
-end
 for chCtr = 1:size(eeg, 1)
     %ripple filter (150-250 Hz)
+    if samplerate ~= filter.samprate
+        
     samprate = samplerate;
     filtdata(chCtr,:) = filtfilt(filter.kernel, 1 , eeg(chCtr,:));
 

@@ -59,16 +59,35 @@ tmpDat = rawDataBySessionNeural.lfpData;
 
 %make ripple filtered eeg traces - based on ripplefileprocess2 and
 %filtereeg2_intan. add functionality for other frequency bands
-[ripple.phase, ripple.env, ripple.filtdata] = filtereeg2_DC(tmpDat, ripplefilter.kernel, smoothing_kernel_rip);
+[ripple.phase, ripple.env, ripple.data, ripple.samprate] = filtereeg2_DC(tmpDat, rawDataBySessionNeural.lfp_meta.samprate, ripplefilter);
+%getting other frequencies for ripple outlier removal
+[theta.phase, theta.env, theta.data, theta.samprate] = filtereeg2_DC(tmpDat, thetafilter.kernel);
+[beta.phase, beta.env, beta.data, beta.samprate] = filtereeg2_DC(tmpDat, betafilter.kernel);
+[delta.phase, delta.env, delta.data, delta.samprate] = filtereeg2_DC(tmpDat, deltafiler.kernel);
+tbdratio.data = theta.data/(beta.data + delta.data);
+    smoothing_width = 1; % % define the standard deviation for the Gaussian smoother
+    kernel = gaussian(smoothing_width*rawDataBySessionNeural.lfp_meta.downsamplerate, ...
+        ceil(8*smoothing_width*rawDataBySessionNeural.lfp_meta.downsamplerate));
+for i = 1:size(tbdratio, 1)
+    tbdratio.data(i, :) = smoothvect(tdratio.data(i,:), kernel);
+end
 
 %actually detect ripples - updated extractripples3 rather then
 %retype it all
 ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv)%options for more inputs, but not fully
 %functional yet. on DC todo list
 
-%josh has some exclusion criteria for high frequency noise ripples. can
-%work in if needed
+%bad ripples are ripples that do not pass criteria. based on
+%outlierindices_allchan and ripplepostfilesprecess2
+%find outliers
+outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfpmeta);%fill out
 
-rawDataBySessionNeural.ripplesGood = r
+ripplepostfileprocess2_DC(ripples, theta, tdbratio, eeg, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
+    params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan)
+
+%now actually ready for postprocessing ripples
+%inputs needed: actual ripples detected, tdbratio, eeg (filtered lfp),
+%theta, can make movement + mua criteria. also some settings: 
+% timearoundrip, freqnumerator, freqdenominator, ratiothresh, outlierindices_allchan
 end
 
