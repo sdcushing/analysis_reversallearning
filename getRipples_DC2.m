@@ -74,7 +74,7 @@ end
 
 %actually detect ripples - updated extractripples3 rather then
 %retype it all
-ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv)%options for more inputs, but not fully
+ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv);%options for more inputs, but not fully
 %functional yet. on DC todo list
 
 %bad ripples are ripples that do not pass criteria. based on

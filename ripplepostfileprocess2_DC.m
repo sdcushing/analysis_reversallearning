@@ -45,7 +45,7 @@ excluded = [];
             
             %get ratio of freq power
             %get this function, update with no index DC
-            [ratio] = findpowerratioripplevsabove2(index, ripples, eeg, timearoundrip, freqnumerator, freqdenominator);
+            [ratio] = findpowerratioripplevsabove2(ripples, eeg, timearoundrip, freqnumerator, freqdenominator);
             if length(ratio) ~= length(ripples.midind)
                 error('ratio is not being calculated properly in ripple post processing')
             end
