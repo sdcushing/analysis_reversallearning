@@ -74,7 +74,7 @@ end
 
 %actually detect ripples - updated extractripples3 rather then
 %retype it all
-ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv)%options for more inputs, but not fully
+ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv);%options for more inputs, but not fully
 %functional yet. on DC todo list
 
 %bad ripples are ripples that do not pass criteria. based on
@@ -82,12 +82,14 @@ ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstd
 %find outliers
 outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfpmeta);%fill out
 
+%based on ripplepostfileprocess2, updated to be compatible with this
+%pipeline. still need to add pos and mua functionality
 ripplepostfileprocess2_DC(ripples, theta, tdbratio, eeg, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
     params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan)
 
-%now actually ready for postprocessing ripples
-%inputs needed: actual ripples detected, tdbratio, eeg (filtered lfp),
-%theta, can make movement + mua criteria. also some settings: 
-% timearoundrip, freqnumerator, freqdenominator, ratiothresh, outlierindices_allchan
+%based on getbestripplechannelsimple
+if plotRipples
+    
+
 end
 

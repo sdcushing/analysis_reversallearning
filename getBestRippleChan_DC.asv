@@ -1,4 +1,4 @@
-function out = getBestRippleChan_DC(ripple, ripples)
+function out = getBestRippleChan_DC(sessindex, files, processeddatadir, lfpChans)
 %% this function finds the channel with the highest ripple power to be included for any data analyses
 % based on getBestRippleChan_simple
 % DC 01.30.26
@@ -9,20 +9,33 @@ function out = getBestRippleChan_DC(ripple, ripples)
 %       top channel in terms of ripple power output from 0:31
 % updated for 2 shank takahashi probes - ALP 11/22/19
 % updated ALP 4/1/21 for a simple format for the preprocessing stream
-    for i = 1:size(ripples, 1)%not sure what structure this variable is, will need to check
-            chanIdx = i; 
+    for i = 1:length(files)
+        index = [sessindex files(i)];
+        %updated loop ALP 4/9/21 for times when the channel # does not
+        %start at 0
+        for c = 1:length(lfpChans)
+            chanIdx = lfpChans(c); 
+        %for chanIdx = 0:length(lfpChans)-1
+            %load ripple files
+            anprocesseddatadir = [processeddatadir, '/', num2str(chanIdx), '/'];
+            ripplefiltfilename =  [anprocesseddatadir, 'EEG/ripple', num2str(index(3)), '.mat'];
+            load(ripplefiltfilename);
+            ripplefilename = [anprocesseddatadir, 'ripples' num2str(index(3)) '.mat'];
+            load(ripplefilename);
+            
             %get average ripple envelope
-            rippleEnv = ripple.data(i,:);
+            rippleEnv = ripple{index(1)}{index(2)}{index(3)}.data(:,3);
             avgRipplePowertemp(chanIdx+1) = mean(rippleEnv);
             
             %get peak ripple values
-            if size(ripples(i).peak,1) > 0
-                ripplePeaktemp(chanIdx+1) = max(ripples(i).peak);
-                rippleEnergytemp(chanIdx+1) = max(ripples(i).energy);
+            if size(ripples{index(1)}{index(2)}{index(3)}.peak,1) > 0
+                ripplePeaktemp(chanIdx+1) = max(ripples{index(1)}{index(2)}{index(3)}.peak);
+                rippleEnergytemp(chanIdx+1) = max(ripples{index(1)}{index(2)}{index(3)}.energy);
             else
                 ripplePeaktemp(chanIdx+1) = nan;
                 rippleEnergytemp(chanIdx+1) = nan;
             end
+        end
         avgRipplePower(i,:) = avgRipplePowertemp'; %this value is derived from overall amplitude in the ripple band
         maxRipplePeak(i,:) = ripplePeaktemp; %this value is derived from actual ripple events
         maxRippleEnergy(i,:) = rippleEnergytemp; %this value is derived from actual ripple events

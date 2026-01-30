@@ -164,7 +164,7 @@ excluded = [];
             end
         end
         
-        clear ripples thetas tdbratio meantdb ratio excl incl eeg;
+        clear excl incl;
     end
 clear partindex timearoundrip freqnumerator freqdenominator ratiothresh;
 end

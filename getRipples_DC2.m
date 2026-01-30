@@ -1,4 +1,4 @@
-function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath, plotRawTraceForRipples, plotRipples)
+function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath, plotRipples)
 %adapted from filtereeg2_Intan.m, extractripples3.m,
 % ripplepostfileprocess2, findpowerratioripplevsabove2
 %last checked JLK 1/8/26
@@ -83,9 +83,17 @@ ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstd
 outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfpmeta);%fill out
 
 %based on ripplepostfileprocess2, updated to be compatible with this
-%pipeline. still need to allow to loop through the channels
+%pipeline. still need to add pos and mua functionality. need to make sure
+%output is consistent with JK output (badRipples and goodRipples)
 ripplepostfileprocess2_DC(ripples, theta, tdbratio, eeg, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
     params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan)
 
+%based on getbestripplechannelsimple. planning on plotting ~raw trace
+%(downsampled with outlier filter) as well as ripple itself
+if plotRipples
+    plottingChan = getBestRippleChan_DC(sessindex, files, probeprocesseddatadir, ...
+                params.savechnum{pr}, overwriteripplechan);
+
+end
 end
 
