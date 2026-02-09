@@ -1,4 +1,4 @@
-function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath, plotRipples)
+function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath, plotRipples, subj)
 %adapted from filtereeg2_Intan.m, extractripples3.m,
 % ripplepostfileprocess2, findpowerratioripplevsabove2
 %last checked JLK 1/8/26
@@ -91,9 +91,27 @@ ripplepostfileprocess2_DC(ripples, theta, tdbratio, eeg, params.ripple.timeAroun
 %based on getbestripplechannelsimple. planning on plotting ~raw trace
 %(downsampled with outlier filter) as well as ripple itself
 if plotRipples
-    plottingChan = getBestRippleChan_DC(sessindex, files, probeprocesseddatadir, ...
-                params.savechnum{pr}, overwriteripplechan);
+    plottingChan = getBestRippleChan_DC(ripple, ripples);
+    ripples.bestchan = plottingChan;
+    %plot everything of interest on the best ripple channel
+    savefigsdir = fullfile(dirs.savefigures, 'ProcessingFigures', params.ID, 'CA1', 'ripples');
+    plottingdatadir = [probeprocesseddatadir, num2str(plottingChan), '\']; 
+    plotLFPperiods(savefigsdir, plottingdatadir, sessindex, files, params, ploteeg, ...
+        plotthetas, plotnonthetas, plotripples, plotgammas, sessregions{pr}, ...
+        plottingChan, interactive); 
+%%%%%%%%%%%
+    timearoundrip = 1; %for plotting
+    interactive = 1;
+    [mnP, maxP, ~] = plotexamples_ripplesenergygram2_DC(savefigsdir, timearoundrip, params.extractripples_freqnumerator, ...
+        params.extractripples_freqdenominator,[80 450], interactive, subj);
 
+    ratiolabel = [num2str(params.extractripples_freqnumerator(1)), '-', ...
+        num2str(params.extractripples_freqnumerator(2)), '/', ...
+        num2str(params.extractripples_freqdenominator(1)), '-', ...
+        num2str(params.extractripples_freqdenominator(2)) ] ;
+    xlabel(['mean Power ratio: ', ratiolabel, '100ms centered at center of ripple'])
+    close all
 end
+%add all the things to the rawneural structure and save
 end
 
