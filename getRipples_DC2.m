@@ -5,8 +5,6 @@ function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath,
 %DC changing to fully incorporate ripplefileprocess, extractripples3, 
 %ripplepostfileprocess2, getBestRippleChan_simple, plotLFPperiods
 
-%JK has functionality to do theta etc filtering, should be easy to include
-%here too
 
 %% extract ripples across session %%
 
@@ -95,10 +93,7 @@ if plotRipples
     ripples.bestchan = plottingChan;
     %plot everything of interest on the best ripple channel
     savefigsdir = fullfile(dirs.savefigures, 'ProcessingFigures', params.ID, 'CA1', 'ripples');
-    plottingdatadir = [probeprocesseddatadir, num2str(plottingChan), '\']; 
-    plotLFPperiods(savefigsdir, plottingdatadir, sessindex, files, params, ploteeg, ...
-        plotthetas, plotnonthetas, plotripples, plotgammas, sessregions{pr}, ...
-        plottingChan, interactive); 
+    plottingdatadir = [probeprocesseddatadir, num2str(plottingChan), '\'];  
 %%%%%%%%%%%
     timearoundrip = 1; %for plotting
     interactive = 1;
@@ -113,5 +108,12 @@ if plotRipples
     close all
 end
 %add all the things to the rawneural structure and save
+rawDataBySessionNeural.ripples = ripples;
+rawDataBySessionNeural.ripple = ripple;
+rawDataBySessionNeural.theta = theta;
+rawDataBySessionNeural.beta = beta;
+rawDataBySessionNeural.delta = delta;
+rawDataBySessionNeural.tbdratio = tbdratio;
+save([saveNeuralPath '\rawDataBySessionNeural.mat'])
 end
 
