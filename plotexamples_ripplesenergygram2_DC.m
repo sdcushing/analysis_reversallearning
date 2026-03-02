@@ -1,4 +1,4 @@
-function [mnP, maxP, allmntbdratio] = plotexamples_ripplesenergygram2_DC(savefigsdir, ripple, ripples, eeg, timearoundrip, freqnumerator,...
+function [mnP, maxP] = plotexamples_ripplesenergygram2_DC(savefigsdir, ripple, ripples, eeg, timearoundrip, freqnumerator,...
     freqdenominator, freqinterest, interactive, subj)
 %based on plotexamples_ripplesenergygram2 2/3/26
 %inputs needed
@@ -223,7 +223,7 @@ subtitle([num2str(subj), ' ', 'CA1'])
                 propripperiods(i) = sum(periods{p}(:,2)-periods{p}(:,1))/size(times,1);
             end
         end
-        allmntbdratio = [allmntbdratio; meantdb(r)];
+        %allmntbdratio = [allmntbdratio; meantdb(r)];
     end
     clear tdbratio ripples ripple eeg
     

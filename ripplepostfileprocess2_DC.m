@@ -1,4 +1,4 @@
-function ripplepostfileprocess2_DC(ripples, thetas, tdbratio, eeg, timearoundrip, freqnumerator, freqdenominator, ratiothresh, outlierindices_allchan, varargin)
+function ripplepostfileprocess2_DC(ripples, tdbratio, eeg, timearoundrip, freqnumerator, freqdenominator, ratiothresh, outlierindices_allchan, varargin)
 % based on ripplepostfileprocess2, compatible with new pipeline
 %inputs
 %   ripples - actual ripples (mid ind., samprate, startind, endind, )
@@ -35,28 +35,24 @@ end
 
 excluded = [];
 % go through each file in flist and filter it
-    for fnum = 1:size(ripples.data, 1)
-        if any(ripples.midind)
-            %check all samprates =
-            if ~isequal(ripples.samprate, thetas.samprate) | ...
-                    ~isequal(ripples.samprate, tdbratio.samprate)
-                error('sampling rates are not the same')
-            end
+    for fnum = 1:size(ripples, 2)%loop through channels
+        tdbcurration = tdbratio.data((fnum),:);
+        if any(ripples(fnum).midind)
             
             %get ratio of freq power
             %get this function, update with no index DC
-            [ratio] = findpowerratioripplevsabove2(ripples, eeg, timearoundrip, freqnumerator, freqdenominator);
-            if length(ratio) ~= length(ripples.midind)
+            [ratio] = findpowerratioripplevsabove2(ripples(fnum), eeg(fnum,:), timearoundrip(fnum), freqnumerator, freqdenominator);
+            if length(ratio) ~= length(ripples(fnum).midind)
                 error('ratio is not being calculated properly in ripple post processing')
             end
             excl1 = ratio<ratiothresh; %ripples that should b excluded
             incl1 = ratio>=ratiothresh; %ripples that should be included
             
             %find if meet tdbratio criteria as well
-            rips = ripples.midind;
-            ripperiods = [rips-0.5*ripples.samprate rips+0.5*ripples.samprate]; %take time before and after ripplem so 1 seconds todal
+            rips = ripples(fnum).midind;
+            ripperiods = [rips-0.5*ripples(fnum).samprate rips+0.5*ripples(fnum).samprate]; %take time before and after ripplem so 1 seconds todal
             ripperiods(ripperiods(:,1)<1,1) = 1; %if start before start of recording, set to 1
-            ripperiods(ripperiods(:,2)>length(tdbratio.data), 2) = length(tdbratio.data); %if start after end of recording set to end of recording
+            ripperiods(ripperiods(:,2)>length(tdbcurration), 2) = length(tdbcurration); %if start after end of recording set to end of recording
             
             for r = 1:size(ripperiods)
                 meantdb(r,:) = mean(tdbratio.data(ripperiods(r,1):ripperiods(r,2)));%average tdbratio during 1 sec around center of rip
@@ -64,12 +60,14 @@ excluded = [];
             %             excl2 = meantdb>thetas{index(1)}{index(2)}{index(3)}.baselinethreshold; %exclude if average thetadeltabeta ratio is > thetas.baseline threshold
             %             incl2 = meantdb<=thetas{index(1)}{index(2)}{index(3)}.baselinethreshold;
             %%%% CHANGED TO BASELINE NOT BASELINE THRESH - 6.19.18 SP
-            excl2 = meantdb>thetas.baseline; %exclude if average thetadeltabeta ratio is > thetas.baseline 
-            incl2 = meantdb<=thetas.baseline;
+            %removed for time being. think no longer necessary and movement
+            %will be enough. DC 2.26.26
+            %excl2 = meantdb>thetas.baseline; %exclude if average thetadeltabeta ratio is > thetas.baseline 
+            %incl2 = meantdb<=thetas.baseline;
             
             %excl if outlier falls into ripple period
             %             tempout = getbinindex(eeg{end}{end}{end}.outlierindices, [ripples{index(1)}{index(2)}{index(3)}.startind ripples{index(1)}{index(2)}{index(3)}.endind]);
-            tempout = getbinindex(outlierindices_allchan{fnum}, [ripples.startind ripples.endind]);
+            tempout = getbinindex(outlierindices_allchan{fnum}, [ripples(fnum).startind ripples(fnum).endind]);
             excl3 = zeros(size(rips,1),1);
             excl3(unique(tempout(tempout~=0))) = 1;
             incl3 = ~excl3;
@@ -77,8 +75,8 @@ excluded = [];
             %excl if max value is greater than maxvalthresh (default 1500)
             maxvalthresh = 1500;
             tempout2 = zeros(size(rips,1),1);
-            for i = 1:length(ripples.startind)
-                eegvalues = eeg.data((ripples.startind(i):ripples.endind(i)));
+            for i = 1:length(ripples(fnum).startind)
+                eegvalues = eeg(fnum,(ripples(fnum).startind(i):ripples(fnum).endind(i)));
                 if any(eegvalues > maxvalthresh) || any(eegvalues < -maxvalthresh)
                     tempout2(i) = 1;
                 end
@@ -95,7 +93,7 @@ excluded = [];
             if applyMUA == 1
                 spikeidx = spikes.spikeindex;
                 downsamp = eeg.downsample;
-                rips = [ripples.startind, ripples.endind];
+                rips = [ripples(fnum).startind, ripples(fnum).endind];
                 rips = rips.*downsamp; %turn it into spike index at 30000 samprate
                 
                 excl5 = false(size(rips,1),1);
@@ -115,11 +113,11 @@ excluded = [];
                 t_sec = applyspeed(2); %in seconds, time range before and after ripple mid index
                 rawpos = rawpos.rawpos;
                 downsamp = eeg.downsample;%check this field name DC
-                rips = ripples.midind;
+                rips = ripples(fnum).midind;
                 rips = rips.*downsamp; %turn it into spike index at 30000 samprate
                 ripperiods = [rips-t_sec*ripples.samprate*downsamp, rips+t_sec*ripples.samprate*downsamp]; %take time before and after ripplem so 2 seconds total - had to make it 30k samp rate bc using spike index
                 ripperiods(ripperiods(:,1)<1,1) = 1; %if start before start of recording, set to 1
-                ripperiods(ripperiods(:,2)>length(tdbratio.data)*downsamp, 2) = length(tdbratio.data)*downsamp; %if start after end of recording set to end of recording
+                ripperiods(ripperiods(:,2)>length(tdbcurration)*downsamp, 2) = length(tdbcurration)*downsamp; %if start after end of recording set to end of recording
                 
                 excl6 = false(size(ripperiods,1),1);
                 for r = 1:size(ripperiods,1)
@@ -141,7 +139,7 @@ excluded = [];
             
             %find outlier ripples and their index
             if any(excl) && (exclude) %exclude outlier ripples
-                rip = ripples;
+                rip = ripples(fnum);
                 n = fieldnames(rip);
                 for i =  1:length(n) %for each field, select only included ripples
                     try

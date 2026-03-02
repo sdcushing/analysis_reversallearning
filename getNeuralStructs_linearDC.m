@@ -99,6 +99,7 @@ lfp_meta.nativechannel = cell(numFolders,1);
 lfp_meta.channelInd    = zeros(numFolders,1);
 lfp_meta.gapInfo       = cell(numFolders,1);
 lfp_samprate_down = 2000;
+down_samp = tmp.raweeg.samprate/lfp_samprate_down;
 
 % Loop through folders
 for i = 1:numFolders
@@ -107,7 +108,8 @@ for i = 1:numFolders
 
     S = load(matFile);
     R = S.raweeg;
-
+    R.data = R.data(:,1:down_samp:end);%downsample before
+    R.samprate = lfp_samprate_down;
     %filter EEG
     [eeg, outlierthresh, numoutlierperiods, outlierindices, outlierperiods] = makefiltereeg_Intan_DC(R, params.filteegfreq, params.eegsamprate, params.outliernstd);
 
@@ -129,7 +131,7 @@ end
 lfp_meta.downsamplerate = lfp_samprate_down;
 %downsample from 20000 to 2000 Hz for ripple filter later
 
-% lfp_data = lfp_data(:,1:downSamp:end);
+%lfp_data = lfp_data(:,1:downSamp:end);
 
 %need to filter outliers + downsample instead. filter works on individual
 %channels, need to rework filter. makefiltereeg_Intan,
@@ -152,7 +154,7 @@ if params.rm60HzNoise
 end%params.rm60HzNoise
 
 %determine lfp start/end times
-virmen_rec_time_lfp = round(rawDataBySession.ephysInd/lfp_samprate_down);%20k/2k = 10 (og samprate/downsamp)
+virmen_rec_time_lfp = round(rawDataBySession.ephysInd/(lfp_meta.samprate/lfp_samprate_down));%20k/2k = 10 (og samprate/downsamp)
 
 % %ensure last virmen data index is around last lfp ttl index
 % if abs( (lfp_ttl_end_ind/lfp_samprate_down) - (virmen_rec_time_lfp(end)/lfp_samprate_down) ) > 1%seconds
@@ -197,7 +199,7 @@ rawDataBySessionNeural.vrTime = rawDataBySession.vrTime;
 rawDataBySessionNeural.lfpTime = virmen_rec_time_lfp;
 rawDataBySessionNeural.apTime = virmen_rec_time_ap;
 rawDataBySessionNeural.lfpData = lfp_data;%already reduced to start to end TTL for finding outliers above
-rawDataBySessionNeural.lfpmeta = lfp_meta;
+rawDataBySessionNeural.lfp_meta = lfp_meta;
 % rawDataBySessionNeural.lfpOutlierInd = [tmpHistStInds'-2 tmpHistStInds'+7];
 rawDataBySessionNeural.apData = ap_data;
 rawDataBySessionNeural.currentDeg = rawDataBySession.currentDeg;

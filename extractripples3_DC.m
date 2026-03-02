@@ -62,7 +62,7 @@ stdev = 0;
 baseline = 0;
 maxpeakval = 1000;
 samethreshperday = 0;
-inclposinfo = 1;
+inclposinfo = 0;%make this functional at some point
 for option = 1:2:length(varargin)-1
     if isstr(varargin{option})
         switch(varargin{option})
@@ -94,7 +94,7 @@ smoothing_width = 0.004; % 4 ms
 %check all .names here to make sure consistent with original filter
     for i = 1:size(ripple.data, 1)% loop through all channels
         % convert the ripple envelope field to double
-        renv = double(ripple.data(i,:));%envelope
+        renv = double(ripple.env(i,:));%envelope
         
         % smooth the envelope:
         samprate = ripple.samprate;

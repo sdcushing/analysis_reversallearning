@@ -78,11 +78,11 @@ if createBehaviorStructs
             if virmen_fileInfo.sessioninfo == 'DC21_251118_5'
                 virmen_fileInfo.trackname = 'TrackA''';
             end
-            %rhd2mat_tempbin_DC(neuralRawDataPath, processedDataPath, sessNum, params);
+            rhd2mat_tempbin_DC(neuralRawDataPath, processedDataPath, sessNum, params);
             disp(['Extracting Virmen Data: ', subj, ' ', sessDate, ' ', sessNum])
             anvrdatafolder = fullfile(dirs.virmenrawdata, [subj '_', sessDate, '_',  sessNum]);
             Args = {sessNum, anvrdatafolder, processedDataPath, params};
-            %feval(params.exportbehaviorfunc, Args{:});
+            feval(params.exportbehaviorfunc, Args{:});
             rawposfile = fullfile(processedDataPath, sprintf('rawpos%s.mat', sessNum));
             rawpos = load(rawposfile);
             rawDataBySession = rawpos.rawpos;

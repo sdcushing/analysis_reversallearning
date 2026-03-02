@@ -32,7 +32,7 @@ params.recday = [];
 params.brainReg = {'CA1'};
 params.probeChannels = {1:64};                                              %64-channel NeuroNexus probe
 params.binsize_ms = 1;                                                      %in ms for monoconnex calculations
-params.binsize_deg = 5;                                                     %in degrees for behavioral analyses
+params.binsize_deg = 2;                                                     %in degrees for behavioral analyses
 params.binsize_s = 60;                                                      %in sec for firing rate stability across session
 params.samprate = 20000;  
 params.lfp_samprate_down = 2000;%in Hz for SpikeGadgets acquisition system
@@ -78,7 +78,7 @@ params.colors_fam = og_colors(7:2:end, :); %shades of grey for original
 
 %ripples
 params.outliernstd = 15; %original: 15, strict: 7 - number of std to exclude outliers. [1x1] or [1x2]. see interpoveroutliers for details
-params.filteegfreq = [1 300];
+params.filteegfreq = [1 250];
 params.eegsamprate = 2000;
 params.ripple.nstdEnv = 4;%number of standard deviations above mean of envelope for 150-250Hz to detect ripple (Josh has options for 2 values)
 params.ripple.nstdNoise = 10;%detect noise deflections in raw data

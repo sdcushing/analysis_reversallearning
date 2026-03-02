@@ -9,13 +9,16 @@ function outlierindices_allchan = rip_outlierexcludeallchan_DC(lfp_meta)
 %   
 
     %loop through all of the channels for that file
-for c = 1:size(lfp_meta.outlierindices, 1) %loop through all channels
+    outlierstemp = [];
+for c = 1:size(lfp_meta.outlierindices, 2) %loop through all channels
 
         %find  unique outliers for each file
-        if any(lfp_meta.outlierindices{i})
-            outlierstemp = [outlierstemp, lfp_meta.outlierindices{i}];
+        if ~isempty(lfp_meta.outlierindices{1, c})
+            outlierstemp = [outlierstemp, lfp_meta.outlierindices{1, c}];
+        else
+            outlierstemp = [outlierstemp, NaN];
         end
     end
     outliers_allchan = unique(outlierstemp);
-    outlierindices_allchan = outliers_allchan;
+    outlierindices_allchan{c} = outliers_allchan;
 end

@@ -5,7 +5,7 @@ function [ratio] = findpowerratioripplevsabove2(ripples, eeg, timearoundrip, fre
 %ALP 3/31/2021 edited to be max to account for column or row vectors
 samprate = ripples.samprate;
 
-a = max(size(eeg.data))/samprate;
+a = max(size(eeg, 2))/samprate;
 times = [0:1/samprate:a]';
 times = times(1:end-1);
 
@@ -29,7 +29,7 @@ for r = 1:size(ripperiods,1)
     
     if max(ripind)<size(times,1) && min(ripind) > 0 %added  min(ripind) > 0 bc rare case where ripple period starts from 0, NJ 6/16/22
         %compute psd
-        [Pxx,F] = pwelch(detrend(eeg.data(ripind)),[],[],[],samprate);
+        [Pxx,F] = pwelch(detrend(eeg(ripind)),[],[],[],samprate);
         
         %compute max & mean power in 150-250 and 250-350
         subfreqs{1} = find(F>=freqnumerator(1) & F<=freqnumerator(2)); %ripple band
