@@ -1,4 +1,4 @@
-function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath, plotRipples, subj)
+function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
 %adapted from filtereeg2_Intan.m, extractripples3.m,
 % ripplepostfileprocess2, findpowerratioripplevsabove2
 %last checked JLK 1/8/26
@@ -102,7 +102,7 @@ outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfp
 %and find pos at those indices, get speed from that, if > threshold exclude
 ripplepostfileprocess2_DC(ripples, tdbratio, tmpDat, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
     params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan, ...
-    rawDataBySessionNeural.currentDeg, rawDataBySessionNeural.vrTime, rawDataBySessionNeural.lfpTime,'applyspeed', params.rippostprocess_applySpeed);
+    rawDataBySessionNeural.currentDeg, rawDataBySessionNeural.vrTime, rawDataBySessionNeural.lfpTime,'exclude', 1, 'applyspeed', params.rippostprocess_applySpeed);
 %based on getbestripplechannelsimple. planning on plotting ~raw trace
 %(downsampled with outlier filter) as well as ripple itself
 if plotRipples
@@ -110,7 +110,7 @@ if plotRipples
     plottingchan = ripple.bestchan.channel;
     ripple.bestchan.channum1indx = rawDataBySessionNeural.lfp_meta.channelInd(plottingchan);
     %plot everything of interest on the best ripple channel
-    savefigsdir = fullfile(dirs.savefigures, 'ProcessingFigures', params.iden, 'CA1', 'ripples');
+    savefigsdir = fullfile(dirs.savefigures, 'ProcessingFigures', params.iden, params.brainReg, 'ripples', sessNum);
     %plottingdatadir = [probeprocesseddatadir, num2str(plottingChan), '\'];  
 %%%%%%%%%%%
     timearoundrip = 1; plotexamples = 1;%for plotting
@@ -128,7 +128,7 @@ if plotRipples
 end
 %add all the things to the rawneural structure and save
 rawDataBySessionNeural.ripples = ripples;
-rawDataBySessionNeural.ripple_bestchan = plottingChan;
+rawDataBySessionNeural.ripple = ripple;
 save([saveNeuralPath '\rawDataBySessionNeural.mat'], 'rawDataBySessionNeural', '-v7.3');
 end
 

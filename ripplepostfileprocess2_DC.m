@@ -144,7 +144,7 @@ excluded = [];
                 n = fieldnames(rip);
                 for i =  1:length(n) %for each field, select only included ripples
                     try
-                        eval(['ripples.' n{i} ' = rip.' n{i} '(incl);']); %added semicolon inside ALP 2/14/2020
+                        eval(['ripples(fnum).' n{i} ' = rip.' n{i} '(incl);']); %added semicolon inside ALP 2/14/2020
                     end
                 end
             end
