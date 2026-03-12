@@ -285,10 +285,9 @@ if gatherNeuralData
                     if ~exist('rawDataBySessionNeural', 'var')
                         load(fullfile(saveNeuralPath,'rawDataBySessionNeural.mat'));
                     end
-                    if ~isfield(rawDataBySessionNeural, 'ripplesGood') || params.rewrite.ripples
-                        sprintf('Getting ripples for %s_%s_%s', subj, sessDate, sessNum)
-                        plotRipples = 1;
-                        getRipples_DC2(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
+                    if ~isfield(rawDataBySessionNeural, 'ripple') || params.rewrite.filtered
+                        sprintf('Getting ripple filtered for %s_%s_%s', subj, sessDate, sessNum)
+                        filter_eeg_frequencies_DC(rawDataBySessionNeural, dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
                     end
                     % if ~isfield(rawDataBySessionNeural, 'ripplesGood') || params.rewrite.ripples
                     %     ripplefileprocess2(chanprocesseddatadir,['eeg',num2str(index(:,3))], dirs.filterdir, params.ripfilterfile)
@@ -329,6 +328,11 @@ if gatherNeuralData
     end%i
 
 end%if gatherNeuralData
+
+if getRipples
+    for i = 1:size(allindex,1) %loop through every session%need to remove some of my loops within this lol
+    if allindex(i,5) > 0 %recording sessions only
+end
 
 %% Decoding %%
 if doDecoding
