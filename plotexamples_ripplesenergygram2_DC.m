@@ -1,5 +1,5 @@
 function [mnP, maxP] = plotexamples_ripplesenergygram2_DC(savefigsdir, ripple, ripples, eeg, timearoundrip, freqnumerator,...
-    freqdenominator, freqinterest, interactive, subj)
+    freqdenominator, freqinterest, interactive, subj, plotexamples, speed, lfpTime, speedthresh)
 %based on plotexamples_ripplesenergygram2 2/3/26
 %inputs needed
 %   savefigsdir - i do think i want this automated
@@ -41,9 +41,9 @@ subtitle([num2str(subj), ' ', 'CA1'])
     a = max(size(ripple.data))/samprate; %ALP 4/1/21 updated to be max, though I think it was working the other way
     times = [0:1/samprate:a]';
     times = times(1:end-1);
-    
+    plot_indx = ripple.bestchan.channel;
     %get ripple envelope
-    renv = ripple.data(:,3);
+    renv = ripple.env(plot_indx,:);
     smoothing_width = 0.004;
     kernel = gaussian(smoothing_width*samprate, ceil(8*smoothing_width*samprate));
     renv = smoothvect(renv, kernel);
@@ -70,7 +70,7 @@ subtitle([num2str(subj), ' ', 'CA1'])
                 maxindex = ripperiods(r+1,1);
             end
             while endindex+(samprate*timearoundrip*2) < maxindex %while long enough period between end of last period and start of next ripple period
-                if all(renv(endindex:endindex+(samprate*timearoundrip*2)) < 3*ripples.std+ripples.baseline)%no SWR > 2std
+                if all(renv(endindex:endindex+(samprate*timearoundrip*2)) < 3*ripples(plot_indx).std+ripples(plot_indx).baseline)%no SWR > 2std
                     outripperiods = [outripperiods; endindex endindex+(samprate*timearoundrip*2)];
                 end
                 endindex = endindex+(samprate*timearoundrip*2)+1;
@@ -81,7 +81,7 @@ subtitle([num2str(subj), ' ', 'CA1'])
         periods{1} = ripperiods;
         
         %some plotting params
-        limstd = ripples.baseline+ ripples.std*7;
+        limstd = ripples(plot_indx).baseline+ ripples(plot_indx).std*7;
         periodtype{1} = 'rip'; periodtype{2} = 'nonrip';
         
         %get number of per to plot - show about 20 (?) alp added 3/18/21
@@ -108,9 +108,9 @@ subtitle([num2str(subj), ' ', 'CA1'])
                     %compute psd
                     for w = 1:2 %for short or long windows
                         if w == 1
-                            [Pxx{w},F{w}] = pwelch(detrend(eeg.data(psdind)),[],[],[],samprate);
+                            [Pxx{w},F{w}] = pwelch(detrend(eeg(plot_indx, psdind)),[],[],[],samprate);
                         elseif w == 2
-                            [Pxx{w},F{w}] = pwelch(detrend(eeg.data(plotind)),[],[],[],samprate);
+                            [Pxx{w},F{w}] = pwelch(detrend(eeg(plot_indx, psdind)),[],[],[],samprate);
                         end
                         freqs{w} = find(F{w}>=freqinterest(1) & F{w}<=freqinterest(2));
                         
@@ -127,71 +127,83 @@ subtitle([num2str(subj), ' ', 'CA1'])
                     
                     %mean tdbrateion
                     % meantdb(r) = mean(tdbratio.data(plotind));
-                    % 
-                    % if  plotexamples == 1 %(rem(r, 20) == 0 | tempmnP{1}(1)/tempmnP{1}(2) < 7) &&  plotexamples == 1 %plot every X ripple and ripples < 7 mean ratio
-                    %     %plot
-                    %     figure(1)
-                    %     subplot(4,1,1)
-                    %     plot(times(plotind), eeg.data(plotind), 'k') %eeg
-                    %     xlim([times(plotind(1)) times(plotind(end))])
-                    %     title('LFP')
-                    % 
-                    %     subplot(4,1,2)
-                    %     plot(times(plotind), ripple.data((plotind),1), 'k') %rippleband
-                    %     hold on
-                    %     plot(times(plotind), renv((plotind),1), 'g') %smoothed envelope
-                    %     plot([times(plotind(1)) times(plotind(end))], ripples.threshold*[1 1], '--')
-                    %     plot([times(plotind(1)) times(plotind(end))], ripples.threshold*[-1 -1], '--')
-                    %     ylim([-limstd limstd])
-                    %     xlim([times(plotind(1)) times(plotind(end))])
-                    %     title([ 'ripples: filtered 150-250Hz and envelope(green).  stdev(dash)',num2str(ripples{end}{end}{end}.std)])
-                    % 
-                    %     subplot(4,1,3)%power spectral density (mean)
-                    %     for w = 1:2
-                    %         plot(F{w}(freqs{w}), Pxx{w}(freqs{w}))
-                    %     end
-                    %     xlim(freqinterest)
-                    %     %title(['psd. mean P ratio:', num2str(tempmnP{w}(1)/tempmnP{w}(2)), ', max ratio P ', num2str(tempmaxP{w}(1)/tempmaxP(2))])
-                    % 
-                    %     %plot tdbratio - remove this, do speed instead.
-                    %     %will need to convert lfp indices to vr indices.
-                    %     %need to figure that out
-                    %     subplot(4,1,4)
-                    %     hold on
-                    %     plot(times(plotind), tdbratio.data((plotind),1), 'g', 'linewidth', 3) %theta/deltaratio
-                    %     plot([times(plotind(1)) times(plotind(end))], thetas.threshold*[1 1], ':')
-                    %     plot([times(plotind(1)) times(plotind(end))], (thetas.baseline-thetas.std)*[1 1], '--')
-                    %     plot([times(plotind(1)) times(plotind(end))], thetas.baseline*[1 1], 'k-')
-                    %     xlim([times(plotind(1)) times(plotind(end))])
-                    %     title(['theta delta ratio (green), baseline (solid), 1std below baseline (dashed), peak threshold (dotted)'])
-                    %     %subtitle(num2str(index));
-                    %     subtitle(['index: ', num2str(index(1)),' ', num2str(index(2)), ' ', num2str(index(3)), periodtype{p},  ' period ', num2str(r), ' ', brainReg]);
-                    % 
-                    %     %                     figure(2)
-                    %     %                     imagesc(energygramtime, freq, energy )
-                    %     %                     colorbar('SouthOutside' )
-                    %     %                     subtitle(['index: ', num2str(index), periodtype{p},  ' period ', num2str(r)])
-                    %     %
-                        if interactive
-                            pause
-                        else
-                            ripplefigdir = fullfile(savefigsdir, 'RipplePeriods', filesep);
-                            if ~exist(ripplefigdir); mkdir(ripplefigdir); end;
-                            figfilename = [ripplefigdir 'rippleexamples' num2str(r)];
-                            saveas(gcf, figfilename, 'png');
+
+                    if  plotexamples == 1 %(rem(r, 20) == 0 | tempmnP{1}(1)/tempmnP{1}(2) < 7) &&  plotexamples == 1 %plot every X ripple and ripples < 7 mean ratio
+                        %plot
+                        figure(1)
+                        subplot(4,1,1)
+                        plot(times(plotind), eeg(plot_indx, plotind), 'k') %eeg
+                        xlim([times(plotind(1)) times(plotind(end))])
+                        title('LFP')
+
+                        subplot(4,1,2)
+                        plot(times(plotind), ripple.data(plot_indx, (plotind)), 'k') %rippleband
+                        hold on
+                        plot(times(plotind), renv(plotind), 'g') %smoothed envelope
+                        plot([times(plotind(1)) times(plotind(end))], ripples(plot_indx).threshold*[1 1], '--')
+                        plot([times(plotind(1)) times(plotind(end))], ripples(plot_indx).threshold*[-1 -1], '--')
+                        ylim([-limstd limstd])
+                        xlim([times(plotind(1)) times(plotind(end))])
+                        title([ 'ripples: filtered 150-250Hz and envelope(green).  stdev(dash)',num2str(ripples(plot_indx).std)])
+
+                        subplot(4,1,3)%power spectral density (mean)
+                        for w = 1:2
+                            plot(F{w}(freqs{w}), Pxx{w}(freqs{w}))
                         end
-                    %end
+                        xlim(freqinterest)
+                        title(['psd. mean P ratio:', num2str(tempmnP{w}(1)/tempmnP{w}(2)), ', max ratio P ', num2str(tempmaxP{w}(1)/tempmaxP{w}(2))])
+
+                        %plot tdbratio - remove this, do speed instead.
+                        %will need to convert lfp indices to vr indices.
+                        %need to figure that out
+                        subplot(4,1,4)
+                        
+                        temp = lookup2(plotind,lfpTime);
+                        time = lfpTime(temp);
+                        velocity = speed(temp);
+                        valid = ~isnan(velocity);
+                        vel_clean  = velocity(valid);
+                        time_clean = time(valid);
+                        plot(times(plotind), vel_clean, 'g', 'linewidth', 3)
+                        hold on
+                        thresh = speedthresh(1);
+                        plot([times(plotind(1)) times(plotind(end))], [thresh thresh], 'k--')
+                        xlim([times(plotind(1)) times(plotind(end))])
+                        title('Velocity');
+                        % plot(times(plotind), tdbratio.data((plotind),1), 'g', 'linewidth', 3) %theta/deltaratio
+                        % plot([times(plotind(1)) times(plotind(end))], thetas.threshold*[1 1], ':')
+                        % plot([times(plotind(1)) times(plotind(end))], (thetas.baseline-thetas.std)*[1 1], '--')
+                        % plot([times(plotind(1)) times(plotind(end))], thetas.baseline*[1 1], 'k-')
+                        % xlim([times(plotind(1)) times(plotind(end))])
+                        % title(['theta delta ratio (green), baseline (solid), 1std below baseline (dashed), peak threshold (dotted)'])
+                        % %subtitle(num2str(index));
+                        % subtitle(['index: ', num2str(index(1)),' ', num2str(index(2)), ' ', num2str(index(3)), periodtype{p},  ' period ', num2str(r), ' ', brainReg]);
+                        % 
+                        % %                     figure(2)
+                        % %                     imagesc(energygramtime, freq, energy )
+                        % %                     colorbar('SouthOutside' )
+                        % %                     subtitle(['index: ', num2str(index), periodtype{p},  ' period ', num2str(r)])
+                        % %
+                        % if interactive
+                        %     pause
+                        % else
+                        %     ripplefigdir = fullfile(savefigsdir, 'RipplePeriods', filesep);
+                        %     if ~exist(ripplefigdir); mkdir(ripplefigdir); end;
+                        %     figfilename = [ripplefigdir 'rippleexamples' num2str(r)];
+                        %     saveas(gcf, figfilename, 'png');
+                        % end
+                    end
                         %%%% i think this is the end of actual ripple
                         %%%% plotting stuff
-                    %     figure(3)
-                    %     for w = 1:2
-                    %         subplot(3,1,w)
-                    %         plot(tempmnP{w}(1)/tempmnP{w}(2), tempmaxP{w}(1)/tempmaxP{w}(2), '*r')
-                    %     end
-                    %     subplot(3,1,3)
-                    %     plot(tempmnP{1}(1)/tempmnP{1}(2), meantdb(r), '*r')
-                    % 
-                    % 
+                        % figure(3)
+                        % for w = 1:2
+                        %     subplot(3,1,w)
+                        %     plot(tempmnP{w}(1)/tempmnP{w}(2), tempmaxP{w}(1)/tempmaxP{w}(2), '*r')
+                        % end
+                        % subplot(3,1,3)
+                        % plot(tempmnP{1}(1)/tempmnP{1}(2), meantdb(r), '*r')
+
+
                     %     clf(1)
                     %     %clf(2)
                     % end
@@ -220,7 +232,7 @@ subtitle([num2str(subj), ' ', 'CA1'])
             %numinclrips(i) = length(inclrips);
             %numexclrips(i) = length(exclrips);
             if ~isempty(periods{p})
-                propripperiods(i) = sum(periods{p}(:,2)-periods{p}(:,1))/size(times,1);
+                propripperiods = sum(periods{p}(:,2)-periods{p}(:,1))/size(times,1);
             end
         end
         %allmntbdratio = [allmntbdratio; meantdb(r)];

@@ -9,19 +9,19 @@ function out = getBestRippleChan_DC(ripple, ripples)
 %       top channel in terms of ripple power output from 0:31
 % updated for 2 shank takahashi probes - ALP 11/22/19
 % updated ALP 4/1/21 for a simple format for the preprocessing stream
-    for i = 1:size(ripples, 1)%not sure what structure this variable is, will need to check
+    for i = 1:size(ripples, 2)%not sure what structure this variable is, will need to check
             chanIdx = i; 
             %get average ripple envelope
             rippleEnv = ripple.data(i,:);
-            avgRipplePowertemp(chanIdx+1) = mean(rippleEnv);
+            avgRipplePowertemp = mean(rippleEnv);
             
             %get peak ripple values
             if size(ripples(i).peak,1) > 0
-                ripplePeaktemp(chanIdx+1) = max(ripples(i).peak);
-                rippleEnergytemp(chanIdx+1) = max(ripples(i).energy);
+                ripplePeaktemp = max(ripples(i).peak);
+                rippleEnergytemp = max(ripples(i).energy);
             else
-                ripplePeaktemp(chanIdx+1) = nan;
-                rippleEnergytemp(chanIdx+1) = nan;
+                ripplePeaktemp = nan;
+                rippleEnergytemp = nan;
             end
         avgRipplePower(i,:) = avgRipplePowertemp'; %this value is derived from overall amplitude in the ripple band
         maxRipplePeak(i,:) = ripplePeaktemp; %this value is derived from actual ripple events
@@ -76,11 +76,12 @@ function out = getBestRippleChan_DC(ripple, ripples)
     else
         meanRipPower = avgRipplePower;
     end
-    bestRippleChan.channel = find(meanRipPower == max(meanRipPower))- 1;
-    bestRippleChan.info = 'channel with largest mean power in the ripple band - 0 based channel ID'; 
+    [~, bestIdx] = max(avgRipplePower);
+    bestRippleChan.channel = bestIdx;
+    bestRippleChan.info = 'channel with largest mean power in the ripple band - eeg index'; 
     bestRippleChan.date = datestr(now); 
     st = dbstack; 
     bestRippleChan.callFun = {st(:).name}; 
 
-out = bestRippleChan.channel; 
+out = bestRippleChan; 
 end

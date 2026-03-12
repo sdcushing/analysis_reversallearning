@@ -1,4 +1,5 @@
-function ripplepostfileprocess2_DC(ripples, tdbratio, eeg, timearoundrip, freqnumerator, freqdenominator, ratiothresh, outlierindices_allchan, varargin)
+function ripplepostfileprocess2_DC(ripples, tdbratio, eeg, timearoundrip, freqnumerator, freqdenominator, ...
+    ratiothresh, outlierindices_allchan, currentDeg, vrTime, lfpTime, varargin)
 % based on ripplepostfileprocess2, compatible with new pipeline
 %inputs
 %   ripples - actual ripples (mid ind., samprate, startind, endind, )
@@ -41,7 +42,7 @@ excluded = [];
             
             %get ratio of freq power
             %get this function, update with no index DC
-            [ratio] = findpowerratioripplevsabove2(ripples(fnum), eeg(fnum,:), timearoundrip(fnum), freqnumerator, freqdenominator);
+            [ratio] = findpowerratioripplevsabove2(ripples(fnum), eeg(fnum,:), timearoundrip, freqnumerator, freqdenominator);
             if length(ratio) ~= length(ripples(fnum).midind)
                 error('ratio is not being calculated properly in ripple post processing')
             end
@@ -111,21 +112,21 @@ excluded = [];
             if ~isempty(applyspeed)
                 speedTh = applyspeed(1); %in deg/s, set on 01.05.2021
                 t_sec = applyspeed(2); %in seconds, time range before and after ripple mid index
-                rawpos = rawpos.rawpos;
-                downsamp = eeg.downsample;%check this field name DC
+                %downsamp = eeg.downsample;%removing bc we have lfpTime
+                %already made. changed downsamp to 1 in below equations
                 rips = ripples(fnum).midind;
-                rips = rips.*downsamp; %turn it into spike index at 30000 samprate
-                ripperiods = [rips-t_sec*ripples.samprate*downsamp, rips+t_sec*ripples.samprate*downsamp]; %take time before and after ripplem so 2 seconds total - had to make it 30k samp rate bc using spike index
+                %rips = rips.*downsamp; %turn it into spike index at 30000 samprate
+                ripperiods = [rips-t_sec*ripples(fnum).samprate*1, rips+t_sec*ripples(fnum).samprate*1]; %take time before and after ripplem so 2 seconds total - had to make it 30k samp rate bc using spike index
                 ripperiods(ripperiods(:,1)<1,1) = 1; %if start before start of recording, set to 1
-                ripperiods(ripperiods(:,2)>length(tdbcurration)*downsamp, 2) = length(tdbcurration)*downsamp; %if start after end of recording set to end of recording
+                ripperiods(ripperiods(:,2)>length(tdbcurration)*1, 2) = length(tdbcurration)*1; %if start after end of recording set to end of recording
                 
                 excl6 = false(size(ripperiods,1),1);
                 for r = 1:size(ripperiods,1)
-                    temp = lookup2(ripperiods(r,:),rawpos.ephysInd);
-                    pos = [0; diff(rawpos.currentTheta(temp(1):temp(2)))];
+                    temp = lookup2(ripperiods(r,:),lfpTime);
+                    pos = [0; diff(currentDeg(temp(1):temp(2)))];
                     pos(pos<-350) = 0;
                     pos = cumsum(pos);
-                    time = sum(diff(rawpos.vrTime(temp(1):temp(2))));
+                    time = sum(diff(vrTime(temp(1):temp(2))));
                     meanspeed = (pos(end)-pos(1)) ./ time;
                     excl6(r) = any(meanspeed > speedTh);
                 end
@@ -133,8 +134,8 @@ excluded = [];
             end
             
             
-            excl = excl1 | excl2 | excl3 | excl4 | excl5 | excl6;
-            incl = incl1 & incl2 & incl3 & incl4 & incl5 & incl6;
+            excl = excl1 | excl3 | excl4 | excl5 | excl6;%excl2 removed with tbdratio
+            incl = incl1 & incl3 & incl4 & incl5 & incl6;%incl2 removed with tbdratio
             
             
             %find outlier ripples and their index
@@ -148,15 +149,15 @@ excluded = [];
                 end
             end
             %make list of outlier ripples and index
-            excluded = [excluded; repmat(index, length(excl), 1) excl];
+            excluded = [excluded; excl];
             
             if (exclude) && ~isempty(applyspeed)
-                ripples.excluderipples = ['excluded ', num2str(sum(excl)),...
+                ripples(fnum).excluderipples = ['excluded ', num2str(sum(excl)),...
                     ' ripples with power ratio (', num2str(freqnumerator), '/' ,...
                     num2str(freqdenominator),') < ' num2str(ratiothresh), ' in ', num2str(timearoundrip), ' sec around rip', ...
                     ' and mean speed > ' num2str(speedTh) ' deg/s'];
             else
-                ripples.excluderipples = ['excluded ', num2str(sum(excl)), ...
+                ripples(fnum).excluderipples = ['excluded ', num2str(sum(excl)), ...
                     ' ripples with power ratio (', num2str(freqnumerator), '/' , ...
                     num2str(freqdenominator),') < ' num2str(ratiothresh), ' in ', num2str(timearoundrip), ' sec around rip'];
             end

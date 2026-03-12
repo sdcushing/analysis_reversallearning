@@ -86,12 +86,13 @@ params.ripple.minRipDur = 0.02;%ms
 params.ripple.timeAroundRip = 0.05;%time (ms) around midpoint of rip to compute ratio
 params.ripple.freqNumerator = [100 250];%high frequency numerator
 params.ripple.freqDenominator = [250 400];%high frequency denominator
-params.ripple.ratioThresh = 5;%lowered from 5%DC moved back to 5
+params.ripple.ratioThresh = 4;%lowered from 5
 params.ripple.applyCriteria = 1;
 params.ripple.applyHighFreqRatio = 0;
 params.ripple.applyTDBRatio = 0;
 params.ripple.applySpeed = 1;
 params.ripple.applyMUA = 1;
+params.rippostprocess_applySpeed = [5, 1];%deg/s for speed, s b4/after ripple to look at
 
 %cell type identification
 params.spikewidthTh = 0.5; %in ms

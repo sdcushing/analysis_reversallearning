@@ -63,7 +63,7 @@ if ~(isfield(rawDataBySessionNeural, 'ripple'))
 [theta.phase, theta.env, theta.data, theta.samprate] = filtereeg2_DC(tmpDat, rawDataBySessionNeural.lfp_meta.downsamplerate, thetafilter);
 [beta.phase, beta.env, beta.data, beta.samprate] = filtereeg2_DC(tmpDat, rawDataBySessionNeural.lfp_meta.downsamplerate, betafilter);
 [delta.phase, delta.env, delta.data, delta.samprate] = filtereeg2_DC(tmpDat, rawDataBySessionNeural.lfp_meta.downsamplerate, deltafilter);
-tdbratio.data = theta.data/(beta.data + delta.data);
+tdbratio.data = theta.data./(beta.data + delta.data);
     smoothing_width = 1; % % define the standard deviation for the Gaussian smoother
     kernel = gaussian(smoothing_width*rawDataBySessionNeural.lfp_meta.downsamplerate, ...
         ceil(8*smoothing_width*rawDataBySessionNeural.lfp_meta.downsamplerate));
@@ -101,21 +101,23 @@ outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfp
 %sample rate) then look up temp = lookup2(ripperiods(r,:),rawpos.ephysInd);
 %and find pos at those indices, get speed from that, if > threshold exclude
 ripplepostfileprocess2_DC(ripples, tdbratio, tmpDat, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
-    params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan)
-eeg, timearoundrip, freqnumerator, freqdenominator, ratiothresh, outlierindices_allchan, varargin)
+    params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan, ...
+    rawDataBySessionNeural.currentDeg, rawDataBySessionNeural.vrTime, rawDataBySessionNeural.lfpTime,'applyspeed', params.rippostprocess_applySpeed);
 %based on getbestripplechannelsimple. planning on plotting ~raw trace
 %(downsampled with outlier filter) as well as ripple itself
 if plotRipples
-    plottingChan = getBestRippleChan_DC(ripple, ripples);
-    ripple.bestchan = plottingChan;
+    ripple.bestchan = getBestRippleChan_DC(ripple, ripples);
+    plottingchan = ripple.bestchan.channel;
+    ripple.bestchan.channum1indx = rawDataBySessionNeural.lfp_meta.channelInd(plottingchan);
     %plot everything of interest on the best ripple channel
     savefigsdir = fullfile(dirs.savefigures, 'ProcessingFigures', params.iden, 'CA1', 'ripples');
     %plottingdatadir = [probeprocesseddatadir, num2str(plottingChan), '\'];  
 %%%%%%%%%%%
-    timearoundrip = 1; %for plotting
-    interactive = 1;
+    timearoundrip = 1; plotexamples = 1;%for plotting
+    interactive = 0;
     [mnP, maxP] = plotexamples_ripplesenergygram2_DC(savefigsdir, ripple, ripples, tmpDat, timearoundrip, params.ripple.freqNumerator,...
-    params.ripple.freqDenominator, [80 450], interactive, subj);
+    params.ripple.freqDenominator, [80 450], interactive, subj, plotexamples, rawDataBySessionNeural.speedSmooth, rawDataBySessionNeural.lfpTime, ...
+    params.rippostprocess_applySpeed);
 
     ratiolabel = [num2str(params.ripple.freqNumerator(1)), '-', ...
         num2str(params.ripple.freqNumerator(2)), '/', ...
