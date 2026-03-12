@@ -12,7 +12,7 @@ function out = getBestRippleChan_DC(ripple, ripples)
     for i = 1:size(ripples, 2)%not sure what structure this variable is, will need to check
             chanIdx = i; 
             %get average ripple envelope
-            rippleEnv = ripple.data(i,:);
+            rippleEnv = ripple.env(i,:);
             avgRipplePowertemp = mean(rippleEnv);
             
             %get peak ripple values
