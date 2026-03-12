@@ -100,9 +100,10 @@ outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfp
 %for pos (speed) will need currentDeg and lfpTime (already in correct
 %sample rate) then look up temp = lookup2(ripperiods(r,:),rawpos.ephysInd);
 %and find pos at those indices, get speed from that, if > threshold exclude
+ripples_bad = [];
 ripplepostfileprocess2_DC(ripples, tdbratio, tmpDat, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
     params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan, ...
-    rawDataBySessionNeural.currentDeg, rawDataBySessionNeural.vrTime, rawDataBySessionNeural.lfpTime,'exclude', 1, 'applyspeed', params.rippostprocess_applySpeed);
+    rawDataBySessionNeural.currentDeg, rawDataBySessionNeural.vrTime, rawDataBySessionNeural.lfpTime, ripples_bad, 'exclude', 1, 'applyspeed', params.rippostprocess_applySpeed);
 %based on getbestripplechannelsimple. planning on plotting ~raw trace
 %(downsampled with outlier filter) as well as ripple itself
 if plotRipples
@@ -129,6 +130,7 @@ end
 %add all the things to the rawneural structure and save
 rawDataBySessionNeural.ripples = ripples;
 rawDataBySessionNeural.ripple = ripple;
+rawDataBySessionNeural.ripplesBad = ripples_bad;
 save([saveNeuralPath '\rawDataBySessionNeural.mat'], 'rawDataBySessionNeural', '-v7.3');
 end
 

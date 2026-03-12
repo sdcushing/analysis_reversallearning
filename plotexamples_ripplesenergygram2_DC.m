@@ -187,10 +187,10 @@ subtitle([num2str(subj), ' ', 'CA1'])
                         % if interactive
                         %     pause
                         % else
-                            ripplefigdir = fullfile(savefigsdir, 'RipplePeriods', filesep);
+                            ripplefigdir = fullfile(char(savefigsdir), filesep);
                             if ~exist(ripplefigdir); mkdir(ripplefigdir); end;
                             figfilename = [ripplefigdir 'rippleexamples' num2str(r)];
-                            saveas(gcf, figfilename, 'png');
+                            saveas(gcf, figfilename);
                         % end
                     end
                         %%%% i think this is the end of actual ripple

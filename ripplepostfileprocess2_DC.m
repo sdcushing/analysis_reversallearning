@@ -1,5 +1,5 @@
 function ripplepostfileprocess2_DC(ripples, tdbratio, eeg, timearoundrip, freqnumerator, freqdenominator, ...
-    ratiothresh, outlierindices_allchan, currentDeg, vrTime, lfpTime, varargin)
+    ratiothresh, outlierindices_allchan, currentDeg, vrTime, lfpTime, ripples_bad, varargin)
 % based on ripplepostfileprocess2, compatible with new pipeline
 %inputs
 %   ripples - actual ripples (mid ind., samprate, startind, endind, )
@@ -33,7 +33,7 @@ for option = 1:2:length(varargin)-1
             error(['Option ''', varargin{option}, ''' not defined']);
     end
 end
-
+ripples_bad = ripples;
 excluded = [];
 % go through each file in flist and filter it
     for fnum = 1:size(ripples, 2)%loop through channels
@@ -145,6 +145,9 @@ excluded = [];
                 for i =  1:length(n) %for each field, select only included ripples
                     try
                         eval(['ripples(fnum).' n{i} ' = rip.' n{i} '(incl);']); %added semicolon inside ALP 2/14/2020
+                    end
+                    try
+                        eval(['ripples_bad(fnum).' n{i} ' = rip.' n{i} '(excl);']); %added semicolon inside ALP 2/14/2020
                     end
                 end
             end
