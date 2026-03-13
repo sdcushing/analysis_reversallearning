@@ -1,4 +1,4 @@
-function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
+function [rawDataBySessionNeural] = getRipples_DC3(dirs, params, saveNeuralPath, plotRipples, subj, sessNum, files)
 %adapted from filtereeg2_Intan.m, extractripples3.m,
 % ripplepostfileprocess2, findpowerratioripplevsabove2
 %last checked JLK 1/8/26
@@ -11,6 +11,11 @@ function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%% load session data %%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%want to make a variable with thresh and baseline etc calculated in each
+%%folder, so only loads + calculates once. need to make a list of folders
+%%and files, then pass that here
+if isfile(saveNeuralPath '\ripplesettings.mat')
 load([saveNeuralPath '\rawDataBySessionNeural.mat'])
 load([saveNeuralPath '\sessionPyrLayerInfo.mat'])
 

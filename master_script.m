@@ -306,15 +306,21 @@ if getRipples
         if allindex(i,5) > 0 %recording sessions only
             %%%%% session info %%%%%
             subj = [params.iden num2str(allindex(i,1))];
-            sessDate = num2str(allindex(i,2));
+            sessDate = (allindex(i,2));
+            alldate = (allindex(:,2) == sessDate);
+            files = allindex(alldate,3:4);
             sessNum = num2str(allindex(i,3));
+            sessDate = num2str(sessDate);
             trackInfo = num2str(allindex(i,4));
-            neuralRawDataPath = fullfile(dirs.rawdata, [subj '_' sessDate]);
-            plotRipples = 1;
-            if ~isfield(rawDataBySessionNeural, 'ripple') || params.rewrite.filtered
-                sprintf('Getting ripple filtered for %s_%s_%s', subj, sessDate, sessNum)
-                getRipples_DC3(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
+            saveNeuralPath = fullfile(dirs.saveoutputstructs, ['Data\Neural\sessionData\' subj '\']);
+            if ~isfile(saveNeuralPath, '\ripplesettings.mat')%if we don't have settings for this file
+                sprintf('Getting ripple settings for %s_%s', subj, sessDate)
+                getRippleSettings(saveNeuralPath, files)
             end
+            plotRipples = 1;
+            saveNeuralPath = fullfile(dirs.saveoutputstructs, ['Data\Neural\sessionData\' subj '\' sessDate '_' sessNum '_' trackInfo]);
+            sprintf('Getting ripple filtered for %s_%s_%s', subj, sessDate, sessNum)
+            getRipples_DC3(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
         end%if allindex(i,5) > 0
     end%i
 end%if getRipples

@@ -125,7 +125,7 @@ params.longtimescales = 0;
 params.refactoredcalc = 0;
 
 %to overwrite existing files or not
-params.rewrite.behavior = 0;
+params.rewrite.behavior = 1;
 params.rewrite.ROC = 1;
 params.rewrite.clusters = 0;
 params.rewrite.cell_metrics = 0;

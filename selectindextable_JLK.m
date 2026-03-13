@@ -107,7 +107,7 @@ end
 headerNames = allindex.Properties.VariableNames;%changing track column number changed the order of header names, so re-define here
 newsessiontypecol = strrep(table2cell(allindex(:,strcmp(headerNames, 'SessionType'))), 'passive', "1"); %find passive sessions
 newsessiontypecol = strrep(newsessiontypecol, 'active', "2"); %find active sessions
-newsessiontypecol = strrep(newsessiontypecol, 'rest', "3"); %find rest sessions
+newsessiontypecol = strrep(newsessiontypecol, 'passive', "3"); %find rest sessions%lick/passive track for DC
 newsessiontypecol = table(double(newsessiontypecol));%convert to double then table
 allindex(:,strcmp(headerNames, 'SessionType')) = []; %delete sessiontype column
 allindex = [allindex newsessiontypecol]; %add new sessiontype column

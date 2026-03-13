@@ -89,13 +89,16 @@ end
 % apply before thresholding (this reduces sensitivity to spurious
 % flucutations in the ripple envelope)
 smoothing_width = 0.004; % 4 ms
-
+allbase = baseline;
+allstdev = stdev;
 %add something to allow all epochs to use same threshold
 %check all .names here to make sure consistent with original filter
     for i = 1:size(ripple.data, 1)% loop through all channels
         % convert the ripple envelope field to double
         renv = double(ripple.env(i,:));%envelope
-        
+        clear baseline stdev;
+        baseline = allbase(i).base;
+        stdev = allstdev(i).stdev;
         % smooth the envelope:
         samprate = ripple.samprate;
         kernel = gaussian(smoothing_width*samprate, ceil(8*smoothing_width*samprate));
@@ -103,14 +106,13 @@ smoothing_width = 0.004; % 4 ms
         % find the ripples
         % calculate the duration in terms of samples
         mindur = round(min_suprathresh_duration * samprate);
-        
+        % 
         % calculate the threshold in uV units
-        if samethreshperday == 0 % is calculating threshold per epoch
-            baseline = mean(renv);
-            stdev = std(renv);
-            thresh = baseline + nstd * stdev;
-        end
-        
+        % if samethreshperday == 0 % is calculating threshold per epoch
+        %     baseline = mean(renv);
+        %     stdev = std(renv); 
+        % end
+        thresh = baseline + nstd * stdev;
         % extract the events if this is a valid trace
         if (thresh > 0) & any(find(renv<baseline))
             tmprip = extractevents(renv, thresh, baseline, 0, mindur, 0)';
