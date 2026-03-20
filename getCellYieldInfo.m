@@ -1,7 +1,7 @@
-function cellYield = getCellYieldInfo(saveNeuralPath)
+function cellYield = getCellYieldInfo(saveNeuralPath, rawDataBySessionNeural)
 
 %% load session data %%
-load([saveNeuralPath '\rawDataBySessionNeural.mat'])
+%load([saveNeuralPath '\rawDataBySessionNeural.mat'])
 
 %% determine cell yield %%
 pyrCellCtr = 0;

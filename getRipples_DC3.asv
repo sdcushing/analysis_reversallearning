@@ -1,4 +1,4 @@
-function [rawDataBySessionNeural] = getRipples_DC3(dirs, params, saveNeuralPath, plotRipples, subj, sessNum, files)
+function [rawDataBySessionNeural] = getRipples_DC3(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
 %adapted from filtereeg2_Intan.m, extractripples3.m,
 % ripplepostfileprocess2, findpowerratioripplevsabove2
 %last checked JLK 1/8/26
@@ -12,12 +12,11 @@ function [rawDataBySessionNeural] = getRipples_DC3(dirs, params, saveNeuralPath,
 %%%%% load session data %%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%want to make a variable with thresh and baseline etc calculated in each
-%%folder, so only loads + calculates once. need to make a list of folders
-%%and files, then pass that here
-if isfile(saveNeuralPath '\ripplesettings.mat')
+%%need to include ripplesettings.stdev, ripplesettings.base to pass to
+%%extractripples3
 load([saveNeuralPath '\rawDataBySessionNeural.mat'])
 load([saveNeuralPath '\sessionPyrLayerInfo.mat'])
+load([saveNeuralPath '\ripplesettings.mat'])
 
 %removing old ripples
 if isfield(rawDataBySessionNeural,'ripplesBad')
@@ -35,8 +34,10 @@ end
 
 %actually detect ripples - updated extractripples3 rather then
 %retype it all
-ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv);%options for more inputs, but not fully
-%functional yet. on DC todo list
+
+ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv, ...
+    ripplesettings.base(:), ripplesettings.stdev);%options for more inputs, but not fully
+    %functional yet. on DC todo list
 
 %bad ripples are ripples that do not pass criteria. based on
 %outlierindices_allchan and ripplepostfilesprecess2

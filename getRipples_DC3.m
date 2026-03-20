@@ -34,9 +34,10 @@ end
 
 %actually detect ripples - updated extractripples3 rather then
 %retype it all
+
 ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv, ...
-    'stdev', ripplesettings.stdev, 'baseline', ripplesettings.base);%options for more inputs, but not fully
-%functional yet. on DC todo list
+    ripplesettings);%options for more inputs, but not fully
+    %functional yet. on DC todo list
 
 %bad ripples are ripples that do not pass criteria. based on
 %outlierindices_allchan and ripplepostfilesprecess2
@@ -50,7 +51,7 @@ outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfp
 %sample rate) then look up temp = lookup2(ripperiods(r,:),rawpos.ephysInd);
 %and find pos at those indices, get speed from that, if > threshold exclude
 ripples_bad = [];
-ripplepostfileprocess2_DC(ripples, tdbratio, tmpDat, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
+[ripples, ripples_bad] = ripplepostfileprocess2_DC(ripples, tdbratio, rawDataBySessionNeural.lfpData, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
     params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan, ...
     rawDataBySessionNeural.currentDeg, rawDataBySessionNeural.vrTime, rawDataBySessionNeural.lfpTime, ripples_bad, 'exclude', 1, 'applyspeed', params.rippostprocess_applySpeed);
 %based on getbestripplechannelsimple. planning on plotting ~raw trace
@@ -65,7 +66,7 @@ if plotRipples
 %%%%%%%%%%%
     timearoundrip = 1; plotexamples = 1;%for plotting
     interactive = 0;
-    [mnP, maxP] = plotexamples_ripplesenergygram2_DC(savefigsdir, ripple, ripples, tmpDat, timearoundrip, params.ripple.freqNumerator,...
+    [mnP, maxP] = plotexamples_ripplesenergygram2_DC(savefigsdir, ripple, ripples, rawDataBySessionNeural.lfpData, timearoundrip, params.ripple.freqNumerator,...
     params.ripple.freqDenominator, [80 450], interactive, subj, plotexamples, rawDataBySessionNeural.speedSmooth, rawDataBySessionNeural.lfpTime, ...
     params.rippostprocess_applySpeed);
 

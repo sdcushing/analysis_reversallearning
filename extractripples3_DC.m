@@ -1,4 +1,4 @@
-function ripples = extractripples3_DC(ripple, min_suprathresh_duration, nstd, varargin)
+function ripples = extractripples3_DC(ripple, min_suprathresh_duration, nstd, ripplesettings, varargin)
 %function extractripples3(directoryname, animal, date, files, min_suprathresh_duration, nstd, varargin)
 % For files with 3 Number index instead of 4.
 %
@@ -58,18 +58,12 @@ function ripples = extractripples3_DC(ripple, min_suprathresh_duration, nstd, va
 %
 %
 ripple.starttime = 0;%start time automatically 0 for all recordings
-stdev = 0;
-baseline = 0;
 maxpeakval = 1000;
 samethreshperday = 0;
 inclposinfo = 0;%make this functional at some point
 for option = 1:2:length(varargin)-1
     if isstr(varargin{option})
         switch(varargin{option})
-            case 'stdev'
-                stdev = varargin{option+1};
-            case 'baseline'
-                baseline = varargin{option+1};
             case 'inclposinfo'
                 inclposinfo = varargin{option+1};
             case 'maxpeakval'
@@ -89,16 +83,13 @@ end
 % apply before thresholding (this reduces sensitivity to spurious
 % flucutations in the ripple envelope)
 smoothing_width = 0.004; % 4 ms
-allbase = baseline;
-allstdev = stdev;
 %add something to allow all epochs to use same threshold
 %check all .names here to make sure consistent with original filter
     for i = 1:size(ripple.data, 1)% loop through all channels
         % convert the ripple envelope field to double
         renv = double(ripple.env(i,:));%envelope
-        clear baseline stdev;
-        baseline = allbase(i).base;
-        stdev = allstdev(i).stdev;
+        baseline = ripplesettings(i).base;
+        stdev = ripplesettings(i).stdev;
         % smooth the envelope:
         samprate = ripple.samprate;
         kernel = gaussian(smoothing_width*samprate, ceil(8*smoothing_width*samprate));

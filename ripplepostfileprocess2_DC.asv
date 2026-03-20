@@ -1,5 +1,5 @@
-function ripplepostfileprocess2_DC(ripples, tdbratio, eeg, timearoundrip, freqnumerator, freqdenominator, ...
-    ratiothresh, outlierindices_allchan, currentDeg, vrTime, lfpTime, varargin)
+function [ripples, ripples_bad] = ripplepostfileprocess2_DC(ripples, tdbratio, eeg, timearoundrip, freqnumerator, freqdenominator, ...
+    ratiothresh, outlierindices_allchan, currentDeg, vrTime, lfpTime, ripples_bad, varargin)
 % based on ripplepostfileprocess2, compatible with new pipeline
 %inputs
 %   ripples - actual ripples (mid ind., samprate, startind, endind, )
@@ -33,7 +33,7 @@ for option = 1:2:length(varargin)-1
             error(['Option ''', varargin{option}, ''' not defined']);
     end
 end
-
+ripples_bad = ripples;
 excluded = [];
 % go through each file in flist and filter it
     for fnum = 1:size(ripples, 2)%loop through channels
@@ -42,7 +42,7 @@ excluded = [];
             
             %get ratio of freq power
             %get this function, update with no index DC
-            [ratio] = findpowerratioripplevsabove2(ripples(fnum), eeg(fnum,:), timearoundrip(fnum), freqnumerator, freqdenominator);
+            [ratio] = findpowerratioripplevsabove2(ripples(fnum), eeg(fnum,:), timearoundrip, freqnumerator, freqdenominator);
             if length(ratio) ~= length(ripples(fnum).midind)
                 error('ratio is not being calculated properly in ripple post processing')
             end
@@ -144,20 +144,23 @@ excluded = [];
                 n = fieldnames(rip);
                 for i =  1:length(n) %for each field, select only included ripples
                     try
-                        eval(['ripples.' n{i} ' = rip.' n{i} '(incl);']); %added semicolon inside ALP 2/14/2020
+                        eval(['ripples(fnum).' n{i} ' = rip.' n{i} '(incl);']); %added semicolon inside ALP 2/14/2020
+                    end
+                    try
+                        eval(['ripples_bad(fnum).' n{i} ' = rip.' n{i} '(excl);']); %added semicolon inside ALP 2/14/2020
                     end
                 end
             end
             %make list of outlier ripples and index
-            excluded = [excluded; repmat(length(excl), 1), excl];
+            excluded = [excluded; excl];
             
             if (exclude) && ~isempty(applyspeed)
-                ripples.excluderipples = ['excluded ', num2str(sum(excl)),...
+                ripples(fnum).excluderipples = ['excluded ', num2str(sum(excl)),...
                     ' ripples with power ratio (', num2str(freqnumerator), '/' ,...
                     num2str(freqdenominator),') < ' num2str(ratiothresh), ' in ', num2str(timearoundrip), ' sec around rip', ...
                     ' and mean speed > ' num2str(speedTh) ' deg/s'];
             else
-                ripples.excluderipples = ['excluded ', num2str(sum(excl)), ...
+                ripples(fnum).excluderipples = ['excluded ', num2str(sum(excl)), ...
                     ' ripples with power ratio (', num2str(freqnumerator), '/' , ...
                     num2str(freqdenominator),') < ' num2str(ratiothresh), ' in ', num2str(timearoundrip), ' sec around rip'];
             end

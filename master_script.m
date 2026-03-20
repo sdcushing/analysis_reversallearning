@@ -16,7 +16,7 @@ addpath('\\ad.gatech.edu\bme\labs\singer\Danielle\code\vr_novelty_behavior-xiao\
 
 %for Josh's virmen output spreadsheet
 [dirs, params] = getDirectoriesAndParams_JLK_DC();%DC update this to call in commonfunc one with User so I only need 1
-allindexT = selectindextable_JLK(dirs.spreadsheet, 'animal', params.animals, 'Track', [1 2 3 4]);%'SessionType', [2 3],
+allindexT = selectindextable_JLK(dirs.spreadsheet, 'animal', params.animals, 'Track', [1 2 3 4 5]);%'SessionType', [2 3],%5 = lick
 
 % % for Danielle/Xiao's virmen output spreadsheet
 % [dirs, params] = getDirectoriesAndParams_JLK_DC();
@@ -41,7 +41,7 @@ end
 %% Specify what you want to analyze here %%
 createBehaviorStructs = 0;
 plotBehavior = 0;
-gatherNeuralData = 1;
+gatherNeuralData = 0;
 getRipples = 1;
 doDecoding = 0;
 
@@ -243,6 +243,7 @@ if gatherNeuralData
                 end
 
                 if postSpikeSort
+                    
 
                     %%%%% create clusters, clustermetrics, and clusters_allrec structs %%%%%
                     if ~isfile([processedDataPath '\kilosort4\clusters.mat']) || params.rewrite.clusters
@@ -265,11 +266,15 @@ if gatherNeuralData
                         getNeuralStructs_linearDC(subj, sessDate, sessNum, params, virmenSessDataPath, processedDataPath, saveNeuralPath)
                     end
 
+                    if ~exist('rawDataBySessionNeural', 'var')
+                        load(fullfile(saveNeuralPath,'rawDataBySessionNeural.mat'));
+                    end
+
                     %%%%% get cell yield info for this session %%%%%
                     %Note: Uses rawDataBySessionNeural and only do session 3
                     if ~isfile([saveNeuralPath '\' 'cellYield.mat']) || params.rewrite.cellYield
                             sprintf('Getting cell yield info for %s_%s_%s', subj, sessDate, sessNum)
-                            getCellYieldInfo(saveNeuralPath)
+                            getCellYieldInfo(saveNeuralPath, rawDataBySessionNeural)
                     end
 
                     %%%%% get pyramidal layer info for this session %%%%%
@@ -283,9 +288,7 @@ if gatherNeuralData
 
                     %%%%% filter for ripples (and other freq) for this session %%%%%
                     %Note: Uses rawDataBySessionNeural struct and chooses channel with most ripples that pass criteria
-                    if ~exist('rawDataBySessionNeural', 'var')
-                        load(fullfile(saveNeuralPath,'rawDataBySessionNeural.mat'));
-                    end
+
                     if ~isfield(rawDataBySessionNeural, 'ripple') || params.rewrite.filtered
                         sprintf('Getting ripple filtered for %s_%s_%s', subj, sessDate, sessNum)
                         filter_eeg_frequencies_DC(rawDataBySessionNeural, dirs, params, saveNeuralPath)
@@ -312,13 +315,14 @@ if getRipples
             sessNum = num2str(allindex(i,3));
             sessDate = num2str(sessDate);
             trackInfo = num2str(allindex(i,4));
-            saveNeuralPath = fullfile(dirs.saveoutputstructs, ['Data\Neural\sessionData\' subj '\']);
-            if ~isfile(saveNeuralPath, '\ripplesettings.mat')%if we don't have settings for this file
+            genNeuralPath = fullfile(dirs.saveoutputstructs, ['Data\Neural\sessionData\' subj '\']);
+            saveNeuralPath = fullfile(dirs.saveoutputstructs, ['Data\Neural\sessionData\' subj '\' sessDate '_' sessNum '_' trackInfo]);
+            ripplefile = [saveNeuralPath, '\ripplesettings.mat'];
+            if ~isfile(ripplefile) || params.rewrite.ripplesettings%if we don't have settings for this file
                 sprintf('Getting ripple settings for %s_%s', subj, sessDate)
-                getRippleSettings(saveNeuralPath, files)
+                getRippleSettings(genNeuralPath, files, sessDate)
             end
             plotRipples = 1;
-            saveNeuralPath = fullfile(dirs.saveoutputstructs, ['Data\Neural\sessionData\' subj '\' sessDate '_' sessNum '_' trackInfo]);
             sprintf('Getting ripple filtered for %s_%s_%s', subj, sessDate, sessNum)
             getRipples_DC3(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
         end%if allindex(i,5) > 0

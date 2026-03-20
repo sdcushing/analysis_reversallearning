@@ -11,6 +11,8 @@ delta = [];
 tdbratio = [];
 ripple = [];
 chCtr = 0;
+filename = [saveNeuralPath '\' 'sessionPyrLayerInfo.mat'];
+load(filename)
 layerChans = sessionPyrLayerInfo.pyrLayerCA1;%CA1 only
 %layerChans = [sessionPyrLayerInfo.pyrLayerCA3 sessionPyrLayerInfo.pyrLayerCA1];%CA3+CA1
 load([dirs.code 'ripplefilter.mat'])
