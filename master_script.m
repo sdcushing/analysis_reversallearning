@@ -16,7 +16,7 @@ addpath('\\ad.gatech.edu\bme\labs\singer\Danielle\code\vr_novelty_behavior-xiao\
 
 %for Josh's virmen output spreadsheet
 [dirs, params] = getDirectoriesAndParams_JLK_DC();%DC update this to call in commonfunc one with User so I only need 1
-allindexT = selectindextable_JLK(dirs.spreadsheet, 'animal', params.animals, 'Track', [1 2 3 4]);%'SessionType', [2 3],
+allindexT = selectindextable_JLK(dirs.spreadsheet, 'animal', params.animals, 'Track', [1 2 3 4 5]);%'SessionType', [2 3],%5 = lick
 
 % % for Danielle/Xiao's virmen output spreadsheet
 % [dirs, params] = getDirectoriesAndParams_JLK_DC();
@@ -41,7 +41,8 @@ end
 %% Specify what you want to analyze here %%
 createBehaviorStructs = 0;
 plotBehavior = 0;
-gatherNeuralData = 1;
+gatherNeuralData = 0;
+getRipples = 1;
 doDecoding = 0;
 
 %% Create behavior data structs %%
@@ -242,6 +243,7 @@ if gatherNeuralData
                 end
 
                 if postSpikeSort
+                    
 
                     %%%%% create clusters, clustermetrics, and clusters_allrec structs %%%%%
                     if ~isfile([processedDataPath '\kilosort4\clusters.mat']) || params.rewrite.clusters
@@ -264,11 +266,15 @@ if gatherNeuralData
                         getNeuralStructs_linearDC(subj, sessDate, sessNum, params, virmenSessDataPath, processedDataPath, saveNeuralPath)
                     end
 
+                    if ~exist('rawDataBySessionNeural', 'var')
+                        load(fullfile(saveNeuralPath,'rawDataBySessionNeural.mat'));
+                    end
+
                     %%%%% get cell yield info for this session %%%%%
                     %Note: Uses rawDataBySessionNeural and only do session 3
                     if ~isfile([saveNeuralPath '\' 'cellYield.mat']) || params.rewrite.cellYield
                             sprintf('Getting cell yield info for %s_%s_%s', subj, sessDate, sessNum)
-                            getCellYieldInfo(saveNeuralPath)
+                            getCellYieldInfo(saveNeuralPath, rawDataBySessionNeural)
                     end
 
                     %%%%% get pyramidal layer info for this session %%%%%
@@ -280,46 +286,14 @@ if gatherNeuralData
                         getPyrLayerInfo(subj, sessDate, sessNum, dirs, params, neuralRawDataPath, saveNeuralPath, plotPyrLayer, selectManually)
                     end
 
-                    %%%%% get ripples for this session %%%%%
+                    %%%%% filter for ripples (and other freq) for this session %%%%%
                     %Note: Uses rawDataBySessionNeural struct and chooses channel with most ripples that pass criteria
-                    if ~exist('rawDataBySessionNeural', 'var')
-                        load(fullfile(saveNeuralPath,'rawDataBySessionNeural.mat'));
-                    end
-                    if ~isfield(rawDataBySessionNeural, 'ripplesGood') || params.rewrite.ripples
-                        sprintf('Getting ripples for %s_%s_%s', subj, sessDate, sessNum)
-                        plotRipples = 1;
-                        getRipples_DC2(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
-                    end
-                    % if ~isfield(rawDataBySessionNeural, 'ripplesGood') || params.rewrite.ripples
-                    %     ripplefileprocess2(chanprocesseddatadir,['eeg',num2str(index(:,3))], dirs.filterdir, params.ripfilterfile)
-                    %     %makes ripple filtered lfp
-                    %     sprintf('Getting ripples for %s_%s_%s', subj, sessDate, sessNum)
-                    %     plotRipples = 1;
-                    %     extractripples3(chanprocesseddatadir, sessindex(1), sessindex(2), files, ...
-                    %         params.extractripples_minsuprathreshduration, params.ripnstd, 'inclposinfo', 0, 'samethreshperday', 1);
-                    %     %extracts actual ripples
-                    %     if ripplepostprocess
-                    %         excluded = [];
-                    %         disp(['Post Processing SWRs: ', identifier, num2str(sessindex(1)), ' ', num2str(sessindex(2))])
-                    %         ripplepostfileprocess2(chanprocesseddatadir, sessindex, files, ...
-                    %             params.extractripples_timearoundrip , params.extractripples_freqnumerator, ...
-                    %             params.extractripples_freqdenominator, params.extractripples_ratiothresh, outlierindices_allchan, ...
-                    %             'exclude', 1, 'applyspeed', params.rippostprocess_applySpeed,'applyMUA', params.rippostprocess_applyMUA);
-                    %     end
-                    %     %For Excluding Ripples that are  outside of the power band 150
-                    %     disp(['getting best ripple channel for ', num2str(sessindex(1)), ' ', ...
-                    %     num2str(sessindex(2)), ' ', sessregions{pr}])
-                    %     plottingChan = getBestRippleChan_simple(sessindex, files, probeprocesseddatadir, ...
-                    %         params.savechnum{pr}, overwriteripplechan);
-                    %     %plot everything of interest on the best ripple channel
-                    %     savefigsdir = fullfile(anprocesseddatadir, 'ProcessingFigures', sessregions{pr}, filesep);
-                    %     plottingdatadir = [probeprocesseddatadir, num2str(plottingChan), '\']; 
-                    %     plotLFPperiods(savefigsdir, plottingdatadir, sessindex, files, params, ploteeg, ...
-                    %         plotthetas, plotnonthetas, plotripples, plotgammas, sessregions{pr}, ...
-                    %         plottingChan, interactive); 
-                    % end
-                    clear ("rawDataBySessionNeural")
 
+                    if ~isfield(rawDataBySessionNeural, 'ripple') || params.rewrite.filtered
+                        sprintf('Getting ripple filtered for %s_%s_%s', subj, sessDate, sessNum)
+                        filter_eeg_frequencies_DC(rawDataBySessionNeural, dirs, params, saveNeuralPath)
+                    end
+                    clear ("rawDataBySessionNeural")
 
                 end%if postSpikeSort
 
@@ -329,6 +303,31 @@ if gatherNeuralData
     end%i
 
 end%if gatherNeuralData
+
+if getRipples
+    for i = 1:size(allindex,1) %loop through every session%need to remove some of my loops within this lol
+        if allindex(i,5) > 0 %recording sessions only
+            %%%%% session info %%%%%
+            subj = [params.iden num2str(allindex(i,1))];
+            sessDate = (allindex(i,2));
+            alldate = (allindex(:,2) == sessDate);
+            files = allindex(alldate,3:4);
+            sessNum = num2str(allindex(i,3));
+            sessDate = num2str(sessDate);
+            trackInfo = num2str(allindex(i,4));
+            genNeuralPath = fullfile(dirs.saveoutputstructs, ['Data\Neural\sessionData\' subj '\']);
+            saveNeuralPath = fullfile(dirs.saveoutputstructs, ['Data\Neural\sessionData\' subj '\' sessDate '_' sessNum '_' trackInfo]);
+            ripplefile = [saveNeuralPath, '\ripplesettings.mat'];
+            if ~isfile(ripplefile) || params.rewrite.ripplesettings%if we don't have settings for this file
+                sprintf('Getting ripple settings for %s_%s', subj, sessDate)
+                getRippleSettings(genNeuralPath, files, sessDate)
+            end
+            plotRipples = 1;
+            sprintf('Getting ripple filtered for %s_%s_%s', subj, sessDate, sessNum)
+            getRipples_DC3(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
+        end%if allindex(i,5) > 0
+    end%i
+end%if getRipples
 
 %% Decoding %%
 if doDecoding

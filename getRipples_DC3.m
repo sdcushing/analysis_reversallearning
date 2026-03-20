@@ -1,4 +1,4 @@
-function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
+function [rawDataBySessionNeural] = getRipples_DC3(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
 %adapted from filtereeg2_Intan.m, extractripples3.m,
 % ripplepostfileprocess2, findpowerratioripplevsabove2
 %last checked JLK 1/8/26
@@ -11,8 +11,12 @@ function [rawDataBySessionNeural] = getRipples_DC2(dirs, params, saveNeuralPath,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%% load session data %%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%need to include ripplesettings.stdev, ripplesettings.base to pass to
+%%extractripples3
 load([saveNeuralPath '\rawDataBySessionNeural.mat'])
 load([saveNeuralPath '\sessionPyrLayerInfo.mat'])
+load([saveNeuralPath '\ripplesettings.mat'])
 
 %removing old ripples
 if isfield(rawDataBySessionNeural,'ripplesBad')
@@ -22,72 +26,18 @@ if isfield(rawDataBySessionNeural,'ripplesGood')
     rawDataBySessionNeural = rmfield(rawDataBySessionNeural,'ripplesGood');
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%% initialize params and load filters %%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-theta = [];
-beta = [];
-delta = [];
-tdbratio = [];
-ripple = [];
-ripples = [];
-ripplesBad = [];
-chCtr = 0;
-layerChans = sessionPyrLayerInfo.pyrLayerCA1;%CA1 only
-%layerChans = [sessionPyrLayerInfo.pyrLayerCA3 sessionPyrLayerInfo.pyrLayerCA1];%CA3+CA1
-load([dirs.code 'ripplefilter.mat'])
-load([dirs.code 'thetafilter.mat'])
-load([dirs.code 'betafilter.mat'])
-load([dirs.code 'deltafilter.mat'])
-
-%%%%% add filter description and parameters %%%%%
-ripple.descript = ripplefilter.descript;
-ripple.kernel = ripplefilter.kernel;
-ripple.samprate = ripplefilter.samprate;
-smoothing_width_rip = 0.004; % 4 ms
-smoothing_kernel_rip = gaussian(smoothing_width_rip*ripple.samprate, ceil(8*smoothing_width_rip*ripple.samprate));
-smoothing_width_tdb = 1; % 1 s
-smoothing_kernel_tdb = gaussian(smoothing_width_tdb*ripple.samprate, ceil(8*smoothing_width_tdb*ripple.samprate));
-minRipDur = round(params.ripple.minRipDur * ripple.samprate);
-tmpDat = rawDataBySessionNeural.lfpData;
-
-%josh has some noise removal here. not going to worry about that right now,
-%but should consider at some point. I have outlier removal when i filter +
-%downsample lfp in getneuralstructs
-
-%make ripple filtered eeg traces - based on ripplefileprocess2 and
-%filtereeg2_intan
-if ~(isfield(rawDataBySessionNeural, 'ripple'))
-[ripple.phase, ripple.env, ripple.data, ripple.samprate] = filtereeg2_DC(tmpDat, rawDataBySessionNeural.lfp_meta.downsamplerate, ripplefilter);
-%getting other frequencies for ripple outlier removal
-[theta.phase, theta.env, theta.data, theta.samprate] = filtereeg2_DC(tmpDat, rawDataBySessionNeural.lfp_meta.downsamplerate, thetafilter);
-[beta.phase, beta.env, beta.data, beta.samprate] = filtereeg2_DC(tmpDat, rawDataBySessionNeural.lfp_meta.downsamplerate, betafilter);
-[delta.phase, delta.env, delta.data, delta.samprate] = filtereeg2_DC(tmpDat, rawDataBySessionNeural.lfp_meta.downsamplerate, deltafilter);
-tdbratio.data = theta.data./(beta.data + delta.data);
-    smoothing_width = 1; % % define the standard deviation for the Gaussian smoother
-    kernel = gaussian(smoothing_width*rawDataBySessionNeural.lfp_meta.downsamplerate, ...
-        ceil(8*smoothing_width*rawDataBySessionNeural.lfp_meta.downsamplerate));
-for i = 1:size(tdbratio, 1)
-    tdbratio.data(i, :) = smoothvect(tdbratio.data(i,:), kernel);
-end
-rawDataBySessionNeural.ripple = ripple;
-rawDataBySessionNeural.theta = theta;
-rawDataBySessionNeural.beta = beta;
-rawDataBySessionNeural.delta = delta;
-rawDataBySessionNeural.tdbratio = tdbratio;
-save([saveNeuralPath '\rawDataBySessionNeural.mat'], 'rawDataBySessionNeural', '-v7.3');
-else
     ripple = rawDataBySessionNeural.ripple;
     theta = rawDataBySessionNeural.theta;
     beta = rawDataBySessionNeural.beta;
     delta = rawDataBySessionNeural.delta;
     tdbratio = rawDataBySessionNeural.tdbratio;
-end
 
 %actually detect ripples - updated extractripples3 rather then
 %retype it all
-ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv);%options for more inputs, but not fully
-%functional yet. on DC todo list
+
+ripples = extractripples3_DC(ripple, params.ripple.minRipDur, params.ripple.nstdEnv, ...
+    ripplesettings);%options for more inputs, but not fully
+    %functional yet. on DC todo list
 
 %bad ripples are ripples that do not pass criteria. based on
 %outlierindices_allchan and ripplepostfilesprecess2
@@ -101,7 +51,7 @@ outlierindices_allchan = rip_outlierexcludeallchan_DC(rawDataBySessionNeural.lfp
 %sample rate) then look up temp = lookup2(ripperiods(r,:),rawpos.ephysInd);
 %and find pos at those indices, get speed from that, if > threshold exclude
 ripples_bad = [];
-ripplepostfileprocess2_DC(ripples, tdbratio, tmpDat, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
+[ripples, ripples_bad] = ripplepostfileprocess2_DC(ripples, tdbratio, rawDataBySessionNeural.lfpData, params.ripple.timeAroundRip, params.ripple.freqNumerator, ...
     params.ripple.freqDenominator, params.ripple.ratioThresh, outlierindices_allchan, ...
     rawDataBySessionNeural.currentDeg, rawDataBySessionNeural.vrTime, rawDataBySessionNeural.lfpTime, ripples_bad, 'exclude', 1, 'applyspeed', params.rippostprocess_applySpeed);
 %based on getbestripplechannelsimple. planning on plotting ~raw trace
@@ -116,7 +66,7 @@ if plotRipples
 %%%%%%%%%%%
     timearoundrip = 1; plotexamples = 1;%for plotting
     interactive = 0;
-    [mnP, maxP] = plotexamples_ripplesenergygram2_DC(savefigsdir, ripple, ripples, tmpDat, timearoundrip, params.ripple.freqNumerator,...
+    [mnP, maxP] = plotexamples_ripplesenergygram2_DC(savefigsdir, ripple, ripples, rawDataBySessionNeural.lfpData, timearoundrip, params.ripple.freqNumerator,...
     params.ripple.freqDenominator, [80 450], interactive, subj, plotexamples, rawDataBySessionNeural.speedSmooth, rawDataBySessionNeural.lfpTime, ...
     params.rippostprocess_applySpeed);
 
