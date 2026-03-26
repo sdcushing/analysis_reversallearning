@@ -305,7 +305,7 @@ if gatherNeuralData
 end%if gatherNeuralData
 
 if getRipples
-    for i = 1:size(allindex,1) %loop through every session%need to remove some of my loops within this lol
+    for i = 1:size(allindex,1) %loop through every session
         if allindex(i,5) > 0 %recording sessions only
             %%%%% session info %%%%%
             subj = [params.iden num2str(allindex(i,1))];
@@ -332,23 +332,18 @@ end%if getRipples
 %% Decoding %%
 if doDecoding
 
-%     for i = 1:size(allindex,1) %loop through every session
-%         if allindex(i,5) > 0 %recording sessions only
-% 
-% 
-% 
-%             %%%%% session info %%%%%
-%             subj = [params.iden num2str(allindex(i,1))];
-%             sessDate = num2str(allindex(i,2));
-%             sessNum = num2str(allindex(i,3));
-%             trackInfo = num2str(allindex(i,4));
-%             virmenSessDataPath = fullfile(dirs.saveoutputstructs, ['Data\Behavior\sessionData\' subj '\' sessDate '_' sessNum '_' trackInfo]);
-%             neuralRawDataPath = fullfile(dirs.rawdata, [subj '_' sessDate]);
-%             saveNeuralPath = fullfile(dirs.saveoutputstructs, ['Data\Neural\sessionData\' subj '\' sessDate '_' sessNum '_' trackInfo]);
-% 
-% 
-% 
-% 
+%%%%% collect neural data across sessions on a given day
+sprintf('Collecting neural data by day')
+getNeuralStructsByDay_linearDC(allindex,dirs,uniqSess,params)
+
+
+getSpeedandLickRateResultsByDay_linearJLK
+plotSpeedandLickRateResultsByDay_linearJLK
+
+getFiringRateResultsByDay_linearJLK
+plotFiringRateResultsByDay_linearJLK
+
+getDecodingResultsByDay_linearJLK
 end
 
 
