@@ -41,8 +41,8 @@ end
 %% Specify what you want to analyze here %%
 createBehaviorStructs = 0;
 plotBehavior = 0;
-gatherNeuralData = 1;
-getRipples = 1;
+gatherNeuralData = 0;
+getRipples = 0;
 doDecoding = 1;%should incorporate for lick track (funsies) and covered track (control)
 
 %% Create behavior data structs %%
@@ -336,8 +336,7 @@ if doDecoding
 sprintf('Collecting neural data by day')
 getNeuralStructsByDay_linearDC(allindex,dirs,uniqSess,params)
 
-
-getSpeedandLickRateResultsByDay_linearJLK
+getSpeedandLickRateResultsByDay_linearDC(dirs,uniqSess,params);
 plotSpeedandLickRateResultsByDay_linearJLK
 
 getFiringRateResultsByDay_linearJLK

@@ -5,7 +5,7 @@ function [data] = getNeuralStructsByDay_linearDC(allindex,dirs,uniqSess,params)
 
 %% create data across sessions per day %%
 
-for id = 2%:length(params.decoding.decID)
+for id = 1:2%length(params.decoding.decID)%3 not yet operational looks like ripples
 
     %loop through unique sessions
     for ss = 1:length(uniqSess)%not sure why 12 here, figure out
@@ -22,8 +22,8 @@ for id = 2%:length(params.decoding.decID)
         if ~isempty(sessionInfo)
 
             %output info
-            dayDataDir = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\JK' num2str(uniqSess(ss,1)) '\' num2str(uniqSess(ss,2))]);
-            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\JK' num2str(uniqSess(ss,1)) '\' num2str(uniqSess(ss,2)) '\' params.decoding.decID{id} 'Data.mat']);
+            dayDataDir = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\DC' num2str(uniqSess(ss,1)) '\' num2str(uniqSess(ss,2))]);
+            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\DC' num2str(uniqSess(ss,1)) '\' num2str(uniqSess(ss,2)) '\' params.decoding.decID{id} 'Data.mat']);
 
             if ~exist(dayDatafname) || params.rewrite.decodingData
 
@@ -346,13 +346,19 @@ for id = 2%:length(params.decoding.decID)
                         %keep all 'trials' for rest sessions
                     end
                 end%name of params.decoding.decID
-
-            end%~exist(decDatafname) || params.rewrite.decoding.data
-
             sprintf('Finished gathering neural data per %s per day for %s%d_%d', params.decoding.decID{id}, params.iden, uniqSess(ss,1),uniqSess(ss,2))
 
             %save data
             save(dayDatafname, 'data', '-v7.3');
+
+            else
+                sprintf('data already created for %s per day for %s%d_%d', params.decoding.decID{id}, params.iden, uniqSess(ss,1),uniqSess(ss,2))
+            end%~exist(decDatafname) || params.rewrite.decoding.data
+
+            %sprintf('Finished gathering neural data per %s per day for %s%d_%d', params.decoding.decID{id}, params.iden, uniqSess(ss,1),uniqSess(ss,2))
+
+            %save data
+            %save(dayDatafname, 'data', '-v7.3');
 
         end%if ~isempty(sessInfo)
     end%ss
