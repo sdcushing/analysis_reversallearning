@@ -96,14 +96,35 @@ else %at least one completed lap
 
         end%p
     
-        %remove trials that span before VR starts or after VR stops
+        %remove trials that span before VR starts or after VR stops - i
+        %don't want to remove ones that span before because it breaks later
+        %code, but do want to make sure even numbers only for degs. 
         if round(rawDataByTrial{znType,1}(1).currentDeg(1)) ~= znStartDegs(1)-params.gapBefore %if first lap cuts off
-            % rawDataByTrial{znType,1}(1) = [];
-            % rawDataByTrial{znType,end}(1) = [];
-        elseif round(rawDataByTrial{znType,end-1}(end).currentDeg(end)) ~= wrapTo360(znStartDegs(end)+params.cueSize+params.gapAfter) %if last lap cuts off
+            if mod(round(rawDataByTrial{znType,1}(1).currentDeg(1)), 2) ~= 0
+                disp('Start angle is odd')
+                new_start = round(rawDataByTrial{znType,1}(1).currentDeg(1)) + 1;
+                idx = find(rawDataByTrial{znType,1}(1).currentDeg(:) >= new_start);
+                fn = fieldnames(rawDataByTrial{znType,1}(1));
+                for f = 1:numel(fn)
+                    field = fn{f};
+                    value = rawDataByTrial{znType,1}(1).(field);
+                    rawDataByTrial{znType,1}(1).(field) = [];
+                    rawDataByTrial{znType,1}(1).(field) = value(idx:end);
+                end
+            end
+        end
+        if round(rawDataByTrial{znType,end-1}(end).currentDeg(end)) ~= wrapTo360(znStartDegs(end)+params.cueSize+params.gapAfter)
             rawDataByTrial{znType,end-1}(end) = [];
             rawDataByTrial{znType,end}(end) = [];
         end%if
+        if  size(rawDataByTrial{znType,1},2) ~= size(rawDataByTrial{znType,end-1},2)%if last lap cuts off
+            rawDataByTrial{znType,1}(end) = [];
+            rawDataByTrial{znType,end}(end) = [];
+            if size(rawDataByTrial{znType,2},2) ~= size(rawDataByTrial{znType,end-1},2)%checking middle zone
+                rawDataByTrial{znType,2}(end) = [];
+                rawDataByTrial{znType,end}(end) = [];
+            end
+        end
 
     end%znType
 

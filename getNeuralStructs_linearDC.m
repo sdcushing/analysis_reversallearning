@@ -254,6 +254,53 @@ if isfile([virmenSessDataPath '\rawDataByLap.mat'])
         rawDataByLapNeural(ii).licked = rawDataBySessionNeural.licked(virmen_lap_start_ind:virmen_lap_end_ind);
         rawDataByLapNeural(ii).currentZone = rawDataBySessionNeural.currentZone(virmen_lap_start_ind:virmen_lap_end_ind);
 
+            %%%%% add spiking indicies %%%%%
+            rawDataByLapNeural(ii).spikeIndAll = zeros(length(rawDataByLapNeural(ii).currentDeg),length(rawDataBySessionNeural.apData));
+            rawDataByLapNeural(ii).spikePosAll = zeros(length(rawDataByLapNeural(ii).currentDeg),length(rawDataBySessionNeural.apData));
+            rawDataByLapNeural(ii).spikeTimeAll = zeros(length(rawDataByLapNeural(ii).currentDeg),length(rawDataBySessionNeural.apData));
+            rawDataByLapNeural(ii).spikeIndMov = zeros(length(rawDataByLapNeural(ii).currentDeg),length(rawDataBySessionNeural.apData));
+            rawDataByLapNeural(ii).spikePosMov = zeros(length(rawDataByLapNeural(ii).currentDeg),length(rawDataBySessionNeural.apData));
+            rawDataByLapNeural(ii).spikeTimeMov = zeros(length(rawDataByLapNeural(ii).currentDeg),length(rawDataBySessionNeural.apData));
+            
+            for clu = 1:length(rawDataBySessionNeural.apData)
+                %all spikes
+                spikeInd = []; spikePos = []; spikeTime = []; spikeIndShuff = []; spikePosShuff = []; spikeTimeShuff = []; 
+                spikeInd = lookup2(rawDataByLapNeural(ii).apData(clu).spikeInds, rawDataByLapNeural(ii).apTime);
+                spikePos = rawDataByLapNeural(ii).currentDeg(spikeInd);
+                spikeTime = rawDataByLapNeural(ii).apTime(spikeInd);
+                rawDataByLapNeural(ii).spikeIndAll(1:length(spikeInd),clu) = spikeInd;
+                rawDataByLapNeural(ii).spikePosAll(1:length(spikePos),clu) = spikePos;
+                rawDataByLapNeural(ii).spikeTimeAll(1:length(spikeTime),clu) = spikeTime;
+                numShuffles = 1000;
+                for s = 1:numShuffles
+                    spikeIndShuff = datasample(1:length(rawDataByLapNeural(ii).apTime), length(spikeInd), 'Replace', true);
+                    spikePosShuff = rawDataByLapNeural(ii).currentDeg(spikeIndShuff);
+                    spikeTimeShuff = rawDataByLapNeural(ii).apTime(spikeIndShuff);
+                    rawDataByLapNeural(ii).spikeIndShuffAll(s,1:length(spikeIndShuff),clu) = spikeIndShuff;
+                    rawDataByLapNeural(ii).spikePosShuffAll(s,1:length(spikePosShuff),clu) = spikePosShuff;
+                    rawDataByLapNeural(ii).spikeTimeShuffAll(s,1:length(spikeTimeShuff),clu) = spikeTimeShuff;
+                end%s
+                %moving only
+                spikeInd = spikeInd(rawDataByLapNeural(ii).isMoving(spikeInd));
+                spikePos = rawDataByLapNeural(ii).currentDeg(spikeInd);
+                spikeTime = rawDataByLapNeural(ii).apTime(spikeInd);
+                rawDataByLapNeural(ii).spikeIndMov(1:length(spikeInd),clu) = spikeInd;
+                rawDataByLapNeural(ii).spikePosMov(1:length(spikePos),clu) = spikePos;
+                rawDataByLapNeural(ii).spikeTimeMov(1:length(spikeTime),clu) = spikeTime;
+                % % %JLK 3/26/26 commenting out shuffling for moving only
+                % % % spikes because it seems like only shuffling all spikes is
+                % % % needed for determining place information
+                % % movingInd = find(rawDataByLapNeural(ii).isMoving);
+                % % for s = 1:numShuffles
+                % %     spikeIndShuff = datasample(1:length(movingInd), length(spikeInd), 'Replace', true);
+                % %     spikePosShuff = rawDataByLapNeural(ii).currentDeg(movingInd(spikeIndShuff));
+                % %     spikeTimeShuff = rawDataByLapNeural(ii).apTime(movingInd(spikeIndShuff));
+                % %     rawDataByLapNeural(ii).spikeIndShuffMov(s,1:length(spikeIndShuff),clu) = spikeIndShuff;
+                % %     rawDataByLapNeural(ii).spikePosShuffMov(s,1:length(spikePosShuff),clu) = spikePosShuff;
+                % %     rawDataByLapNeural(ii).spikeTimeShuffMov(s,1:length(spikeTimeShuff),clu) = spikeTimeShuff;
+                % % end%s
+            end%clu
+
         %%%%% binned data for decoding %%%%%
         %DISTANCE%
         %create bins and identify which bins each position data point belongs to
@@ -276,17 +323,32 @@ if isfile([virmenSessDataPath '\rawDataByLap.mat'])
         rawDataByLapNeural(ii).degBinSpeedSmooth = gaussSmooth(rawDataByLapNeural(ii).degBinSpeed, 2)';
         rawDataByLapNeural(ii).degBinLickRateSmooth = gaussSmooth(rawDataByLapNeural(ii).degBinLickRate, 2)';
 
-        %add spiking data and rate map
-        rawDataByLapNeural(ii).degBinSpikeCount = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
-        rawDataByLapNeural(ii).degBinSpikeCountSmooth = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
-        rawDataByLapNeural(ii).degBinRateMap = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
-        for clu = 1:length(rawDataBySessionNeural.apData)
-            spikePosInd = lookup2(rawDataByLapNeural(ii).apData(clu).spikeInds, rawDataByLapNeural(ii).apTime);
-            spikePos = rawDataByLapNeural(ii).currentDeg(spikePosInd);
-            rawDataByLapNeural(ii).degBinSpikeCount(:,clu) = histcounts(spikePos,degBinEdges);
-            rawDataByLapNeural(ii).degBinSpikeCountSmooth(:,clu) = gaussSmooth(rawDataByLapNeural(ii).degBinSpikeCount(:,clu)', 2)';
-            rawDataByLapNeural(ii).degBinRateMap(:,clu) = rawDataByLapNeural(ii).degBinSpikeCountSmooth(:,clu) ./ rawDataByLapNeural(ii).degBinOccupSmooth;
-        end%clu
+            %TIME%
+            tBinEdges = rawDataByLapNeural(ii).apTime(1):params.samprate*params.binsize_mstime/1000:rawDataByLapNeural(ii).apTime(end);%in ms bins
+            rawDataByLapNeural(ii).tBinSizeMS = params.binsize_mstime;
+            rawDataByLapNeural(ii).tBinSizeSamp = params.samprate*params.binsize_mstime/1000;
+            rawDataByLapNeural(ii).tBinEdges = tBinEdges;
+
+            %identify which bins each position data point belongs to
+            tBinIden = discretize(rawDataByLapNeural(ii).apTime,tBinEdges);
+
+            %actual position and licks per spatial bin
+            for b = 1:length(tBinEdges)-1
+                rawDataByLapNeural(ii).tBinActualPos(b) = nanmean(rawDataByLapNeural(ii).currentDeg(tBinIden == b));
+                rawDataByLapNeural(ii).tBinSpeed(b) = nanmean(rawDataByLapNeural(ii).speed(tBinIden == b));
+                rawDataByLapNeural(ii).tBinLicked(b) = sum(rawDataByLapNeural(ii).licked(tBinIden == b));
+            end%bin
+        % %add spiking data and rate map
+        % rawDataByLapNeural(ii).degBinSpikeCount = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
+        % rawDataByLapNeural(ii).degBinSpikeCountSmooth = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
+        % rawDataByLapNeural(ii).degBinRateMap = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
+        % for clu = 1:length(rawDataBySessionNeural.apData)
+        %     spikePosInd = lookup2(rawDataByLapNeural(ii).apData(clu).spikeInds, rawDataByLapNeural(ii).apTime);
+        %     spikePos = rawDataByLapNeural(ii).currentDeg(spikePosInd);
+        %     rawDataByLapNeural(ii).degBinSpikeCount(:,clu) = histcounts(spikePos,degBinEdges);
+        %     rawDataByLapNeural(ii).degBinSpikeCountSmooth(:,clu) = gaussSmooth(rawDataByLapNeural(ii).degBinSpikeCount(:,clu)', 2)';
+        %     rawDataByLapNeural(ii).degBinRateMap(:,clu) = rawDataByLapNeural(ii).degBinSpikeCountSmooth(:,clu) ./ rawDataByLapNeural(ii).degBinOccupSmooth;
+        % end%clu
 
     end%ii
 
@@ -344,7 +406,30 @@ if isfile([virmenSessDataPath '\rawDataByTrial.mat'])
                 rawDataByTrialNeural{znType,znNum}(tr).isMoving = rawDataBySessionNeural.isMoving(virmen_trial_start_ind:virmen_trial_end_ind);
                 rawDataByTrialNeural{znType,znNum}(tr).licked = rawDataBySessionNeural.licked(virmen_trial_start_ind:virmen_trial_end_ind);
                 rawDataByTrialNeural{znType,znNum}(tr).currentZone = rawDataBySessionNeural.currentZone(virmen_trial_start_ind:virmen_trial_end_ind);
-
+               
+                %%%%% add spiking indicies %%%%%
+                rawDataByTrialNeural{znType,znNum}(tr).spikeIndAll = zeros(length(rawDataByTrialNeural{znType,znNum}(tr).currentDeg),length(rawDataBySessionNeural.apData));
+                rawDataByTrialNeural{znType,znNum}(tr).spikePosAll = zeros(length(rawDataByTrialNeural{znType,znNum}(tr).currentDeg),length(rawDataBySessionNeural.apData));
+                rawDataByTrialNeural{znType,znNum}(tr).spikeTimeAll = zeros(length(rawDataByTrialNeural{znType,znNum}(tr).currentDeg),length(rawDataBySessionNeural.apData));
+                rawDataByTrialNeural{znType,znNum}(tr).spikeIndMov = zeros(length(rawDataByTrialNeural{znType,znNum}(tr).currentDeg),length(rawDataBySessionNeural.apData));
+                rawDataByTrialNeural{znType,znNum}(tr).spikePosMov = zeros(length(rawDataByTrialNeural{znType,znNum}(tr).currentDeg),length(rawDataBySessionNeural.apData));
+                rawDataByTrialNeural{znType,znNum}(tr).spikeTimeMov = zeros(length(rawDataByTrialNeural{znType,znNum}(tr).currentDeg),length(rawDataBySessionNeural.apData));
+                for clu = 1:length(rawDataBySessionNeural.apData)
+                    %all spikes
+                    spikeInd = lookup2(rawDataByTrialNeural{znType,znNum}(tr).apData(clu).spikeInds, rawDataByTrialNeural{znType,znNum}(tr).apTime);
+                    spikePos = rawDataByTrialNeural{znType,znNum}(tr).currentDeg(spikeInd);
+                    spikeTime = rawDataByTrialNeural{znType,znNum}(tr).apTime(spikeInd);
+                    rawDataByTrialNeural{znType,znNum}(tr).spikeIndAll(1:length(spikeInd),clu) = spikeInd;
+                    rawDataByTrialNeural{znType,znNum}(tr).spikePosAll(1:length(spikePos),clu) = spikePos;
+                    rawDataByTrialNeural{znType,znNum}(tr).spikeTimeAll(1:length(spikeTime),clu) = spikeTime;
+                    %moving only
+                    spikeInd = spikeInd(rawDataByTrialNeural{znType,znNum}(tr).isMoving(spikeInd));
+                    spikePos = rawDataByTrialNeural{znType,znNum}(tr).currentDeg(spikeInd);
+                    spikeTime = rawDataByTrialNeural{znType,znNum}(tr).apTime(spikeInd);
+                    rawDataByTrialNeural{znType,znNum}(tr).spikeIndMov(1:length(spikeInd),clu) = spikeInd;
+                    rawDataByTrialNeural{znType,znNum}(tr).spikePosMov(1:length(spikePos),clu) = spikePos;
+                    rawDataByTrialNeural{znType,znNum}(tr).spikeTimeMov(1:length(spikeTime),clu) = spikeTime;
+                end%clu
                 %%%%% binned data for decoding %%%%%
                 %DISTANCE%
                 %create bins and identify which bins each position data point belongs to
@@ -369,40 +454,76 @@ if isfile([virmenSessDataPath '\rawDataByTrial.mat'])
                     if isempty(degBinEdges)
                         error('degBinEdges is empty, stopping execution.');
                     end
-                    rawDataByTrialNeural{znType,znNum}(tr).degBinEdges = degBinEdges;
-                    degBinIden = discretize(rawDataByTrialNeural{znType,znNum}(tr).currentDeg,degBinEdges);
-                end
+                    if degBinEdges(1) == 0
+                        degBinEdges = degBinEdges(2:end);
+                    end
+                rawDataByTrialNeural{znType,znNum}(tr).degBinEdges = degBinEdges;
+                degBinIden = discretize(rawDataByTrialNeural{znType,znNum}(tr).currentDeg,degBinEdges);
+                %end
                 rawDataByTrialNeural{znType,znNum}(tr).degBinSize = params.binsize_deg;
 
+                %extract spatial information from lap struct
+                        rawDataByTrialNeural{znType,znNum}(tr).degBinOccup = rawDataByLapNeural(tr).degBinOccup(degBinEdges(1:length(degBinEdges)-1)/2);
+                        rawDataByTrialNeural{znType,znNum}(tr).degBinPos = rawDataByLapNeural(tr).degBinPos(degBinEdges(1:length(degBinEdges)-1)/2);
+                        rawDataByTrialNeural{znType,znNum}(tr).degBinLicked = rawDataByLapNeural(tr).degBinLicked(degBinEdges(1:length(degBinEdges)-1)/2);
+                        rawDataByTrialNeural{znType,znNum}(tr).degBinSpeed = rawDataByLapNeural(tr).degBinSpeed(degBinEdges(1:length(degBinEdges)-1)/2);
+                        rawDataByTrialNeural{znType,znNum}(tr).degBinLickRate = rawDataByLapNeural(tr).degBinLickRate(degBinEdges(1:length(degBinEdges)-1)/2);
+                        rawDataByTrialNeural{znType,znNum}(tr).degBinOccupSmooth = rawDataByLapNeural(tr).degBinOccupSmooth(degBinEdges(1:length(degBinEdges)-1)/2);
+                        rawDataByTrialNeural{znType,znNum}(tr).degBinPosSmooth = rawDataByLapNeural(tr).degBinPosSmooth(degBinEdges(1:length(degBinEdges)-1)/2);
+                        rawDataByTrialNeural{znType,znNum}(tr).degBinSpeedSmooth = rawDataByLapNeural(tr).degBinSpeedSmooth(degBinEdges(1:length(degBinEdges)-1)/2);
+                        rawDataByTrialNeural{znType,znNum}(tr).degBinLickRateSmooth = rawDataByLapNeural(tr).degBinLickRateSmooth(degBinEdges(1:length(degBinEdges)-1)/2);
+                    end%if zone wraps around 360
+
+                    %TIME%
+                    tBinEdges = rawDataByTrialNeural{znType,znNum}(tr).apTime(1):params.samprate*params.binsize_mstime/1000:rawDataByTrialNeural{znType,znNum}(tr).apTime(end);%in ms bins
+                    rawDataByTrialNeural{znType,znNum}(tr).tBinSizeMS = params.binsize_mstime;
+                    rawDataByTrialNeural{znType,znNum}(tr).tBinSizeSamp = params.samprate*params.binsize_mstime/1000;
+                    rawDataByTrialNeural{znType,znNum}(tr).tBinEdges = tBinEdges;
+
+                    %identify which bins each position data point belongs to
+                    tBinIden = discretize(rawDataByTrialNeural{znType,znNum}(tr).apTime,tBinEdges);
+
+                    %actual position and licks per spatial bin
+                    for b = 1:length(tBinEdges)-1
+                        rawDataByTrialNeural{znType,znNum}(tr).tBinActualPos(b) = nanmean(rawDataByTrialNeural{znType,znNum}(tr).currentDeg(tBinIden == b));
+                        rawDataByTrialNeural{znType,znNum}(tr).tBinSpeed(b) = nanmean(rawDataByTrialNeural{znType,znNum}(tr).speed(tBinIden == b));
+                        rawDataByTrialNeural{znType,znNum}(tr).tBinLicked(b) = sum(rawDataByTrialNeural{znType,znNum}(tr).licked(tBinIden == b));
+                    end%bin
+
+
+                %%%%%%%NOT SURE WHAT IS NEEDED WHERE WITH TIME
+                %%%%%%%INCLUDED%%%%%
                 %compute occupancy, speed, and licks per spatial bin 
-                for b = 1:length(degBinEdges)-1
-                    rawDataByTrialNeural{znType,znNum}(tr).degBinOccup(b) = sum(diff(rawDataByTrialNeural{znType,znNum}(tr).vrTime(degBinIden == b)));
-                    rawDataByTrialNeural{znType,znNum}(tr).degBinPos(b) = sum(diff(rawDataByTrialNeural{znType,znNum}(tr).currentDeg(degBinIden == b)));
-                    rawDataByTrialNeural{znType,znNum}(tr).degBinLicked(b) = sum(rawDataByTrialNeural{znType,znNum}(tr).licked(degBinIden == b));
-                end%bin
-                rawDataByTrialNeural{znType,znNum}(tr).degBinSpeed = rawDataByTrialNeural{znType,znNum}(tr).degBinPos ./ rawDataByTrialNeural{znType,znNum}(tr).degBinOccup;
-                rawDataByTrialNeural{znType,znNum}(tr).degBinLickRate = rawDataByTrialNeural{znType,znNum}(tr).degBinLicked ./ rawDataByTrialNeural{znType,znNum}(tr).degBinOccup;
-                %smooth data
-                rawDataByTrialNeural{znType,znNum}(tr).degBinOccupSmooth = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinOccup, 2)';
-                rawDataByTrialNeural{znType,znNum}(tr).degBinPosSmooth = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinPos, 2)';
-                rawDataByTrialNeural{znType,znNum}(tr).degBinSpeedSmooth = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinSpeed, 2)';
-                rawDataByTrialNeural{znType,znNum}(tr).degBinLickRateSmooth = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinLickRate, 2)';
+                % for b = 1:length(degBinEdges)-1
+                %     rawDataByTrialNeural{znType,znNum}(tr).degBinOccup(b) = sum(diff(rawDataByTrialNeural{znType,znNum}(tr).vrTime(degBinIden == b)));
+                %     rawDataByTrialNeural{znType,znNum}(tr).degBinPos(b) = sum(diff(rawDataByTrialNeural{znType,znNum}(tr).currentDeg(degBinIden == b)));
+                %     rawDataByTrialNeural{znType,znNum}(tr).degBinLicked(b) = sum(rawDataByTrialNeural{znType,znNum}(tr).licked(degBinIden == b));
+                % end%bin
+                % rawDataByTrialNeural{znType,znNum}(tr).degBinSpeed = rawDataByTrialNeural{znType,znNum}(tr).degBinPos ./ rawDataByTrialNeural{znType,znNum}(tr).degBinOccup;
+                % rawDataByTrialNeural{znType,znNum}(tr).degBinLickRate = rawDataByTrialNeural{znType,znNum}(tr).degBinLicked ./ rawDataByTrialNeural{znType,znNum}(tr).degBinOccup;
+                % %smooth data
+                % rawDataByTrialNeural{znType,znNum}(tr).degBinOccupSmooth = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinOccup, 2)';
+                % rawDataByTrialNeural{znType,znNum}(tr).degBinPosSmooth = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinPos, 2)';
+                % rawDataByTrialNeural{znType,znNum}(tr).degBinSpeedSmooth = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinSpeed, 2)';
+                % rawDataByTrialNeural{znType,znNum}(tr).degBinLickRateSmooth = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinLickRate, 2)';
+                % 
+                % %add spiking data and rate map
+                % rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCount = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
+                % rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCountSmooth = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
+                % rawDataByTrialNeural{znType,znNum}(tr).degBinRateMap = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
+                % for clu = 1:length(rawDataBySessionNeural.apData)
+                %     spikePosInd = lookup2(rawDataByTrialNeural{znType,znNum}(tr).apData(clu).spikeInds, rawDataByTrialNeural{znType,znNum}(tr).apTime);
+                %     spikePos = rawDataByTrialNeural{znType,znNum}(tr).currentDeg(spikePosInd);
+                %     if any(abs(diff(spikePos)) > 300) %for trials that wrap 360
+                %        spikePos(spikePos<300) = spikePos(spikePos<300) + 360;
+                %     end
+                %     rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCount(:,clu) = histcounts(spikePos,degBinEdges);
+                %     rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCountSmooth(:,clu) = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCount(:,clu)', 2)';
+                %     rawDataByTrialNeural{znType,znNum}(tr).degBinRateMap(:,clu) = rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCountSmooth(:,clu) ./ rawDataByTrialNeural{znType,znNum}(tr).degBinOccupSmooth;
+                % end%clu
 
-                %add spiking data and rate map
-                rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCount = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
-                rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCountSmooth = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
-                rawDataByTrialNeural{znType,znNum}(tr).degBinRateMap = zeros(length(degBinEdges)-1,length(rawDataBySessionNeural.apData));
-                for clu = 1:length(rawDataBySessionNeural.apData)
-                    spikePosInd = lookup2(rawDataByTrialNeural{znType,znNum}(tr).apData(clu).spikeInds, rawDataByTrialNeural{znType,znNum}(tr).apTime);
-                    spikePos = rawDataByTrialNeural{znType,znNum}(tr).currentDeg(spikePosInd);
-                    if any(abs(diff(spikePos)) > 300) %for trials that wrap 360
-                       spikePos(spikePos<300) = spikePos(spikePos<300) + 360;
-                    end
-                    rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCount(:,clu) = histcounts(spikePos,degBinEdges);
-                    rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCountSmooth(:,clu) = gaussSmooth(rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCount(:,clu)', 2)';
-                    rawDataByTrialNeural{znType,znNum}(tr).degBinRateMap(:,clu) = rawDataByTrialNeural{znType,znNum}(tr).degBinSpikeCountSmooth(:,clu) ./ rawDataByTrialNeural{znType,znNum}(tr).degBinOccupSmooth;
-                end%clu
-
+                %%%%%%%NOT SURE WHAT IS NEEDED WHERE WITH TIME
+                %%%%%%%INCLUDED%%%%%
                 % % Below code for binning by time works, but currnetly not including time bins because 
                 % %  rawDataByTrialNeural is extracted by degrees, leading to many time bins being NaN/0.
                 % %  Also, not many spikes, so the several time bins leads to noisy results.
@@ -443,7 +564,32 @@ if isfile([virmenSessDataPath '\rawDataByTrial.mat'])
                 % % end%clu
 
                %%%%% add data to cell after last zone, like rawDataByTrial struct %%%%%
-               rawDataByTrialNeural{znType,size(rawDataByTrial,2)}(znNum + (tr-1)*(size(rawDataByTrial,2)-1)) = rawDataByTrialNeural{znType,znNum}(tr);
+               sprintf('amassing trial structs for %s_%s_%s', sessNum, num2str(znNum), num2str(tr))
+               %rawDataByTrialNeural{znType,size(rawDataByTrial,2)}(znNum + (tr-1)*(size(rawDataByTrial,2)-1)) = rawDataByTrialNeural{znType,znNum}(tr);
+                %the above line is randomly failing, so putting in the loop
+                %below DC 4.2.26
+                % Compute destination index
+                dstI = znNum + (tr-1)*(size(rawDataByTrial,2)-1);
+
+                % Extract source struct
+                src = rawDataByTrialNeural{znType, znNum}(tr);
+                % Loop through fields and assign individually
+                fn = fieldnames(src);
+                for i = 1:numel(fn)
+                    f = fn{i};
+                    try
+                        rawDataByTrialNeural{znType, size(rawDataByTrial,2)}(dstI).(f) = src.(f);
+                        % Uncomment if you want to see successful fields:
+                        % fprintf('OK: %s\n', f);
+                    catch ME
+                        fprintf('ERROR assigning field: %s\n', f);
+                        fprintf('src size: %s, dst size: %s\n', ...
+                            mat2str(size(src.(f))), ...
+                            mat2str(size(rawDataByTrialNeural{znType, size(rawDataByTrial,2)}(dstI).(f))));
+                        rethrow(ME)
+                    end%try
+                end%for fn
+
             end%tr
         end%znNum
     end%znType

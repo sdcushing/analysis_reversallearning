@@ -41,9 +41,9 @@ end
 %% Specify what you want to analyze here %%
 createBehaviorStructs = 0;
 plotBehavior = 0;
-gatherNeuralData = 0;
+gatherNeuralData = 1;
 getRipples = 1;
-doDecoding = 0;
+doDecoding = 1;%should incorporate for lick track (funsies) and covered track (control)
 
 %% Create behavior data structs %%
 if createBehaviorStructs
@@ -92,7 +92,7 @@ if createBehaviorStructs
 
             %%%%% create behavior structs %%%%%
             if allindex(i,6) == 2%Active VR session
-
+                %load(fullfile(saveBehaviorPath, 'rawDataBySession.mat'));
                 %LAPS
                 %adapted from getTrialByTrialStats_linearJLK and getSessionStats_linearJLK
                 %Note: only completed laps
@@ -290,7 +290,7 @@ if gatherNeuralData
                     %Note: Uses rawDataBySessionNeural struct and chooses channel with most ripples that pass criteria
 
                     if ~isfield(rawDataBySessionNeural, 'ripple') || params.rewrite.filtered
-                        sprintf('Getting ripple filtered for %s_%s_%s', subj, sessDate, sessNum)
+                        sprintf('Getting ripple filtered lfp for %s_%s_%s', subj, sessDate, sessNum)
                         filter_eeg_frequencies_DC(rawDataBySessionNeural, dirs, params, saveNeuralPath)
                     end
                     clear ("rawDataBySessionNeural")
@@ -323,7 +323,7 @@ if getRipples
                 getRippleSettings(genNeuralPath, files, sessDate)
             end
             plotRipples = 1;
-            sprintf('Getting ripple filtered for %s_%s_%s', subj, sessDate, sessNum)
+            sprintf('Getting ripples for %s_%s_%s', subj, sessDate, sessNum)
             getRipples_DC3(dirs, params, saveNeuralPath, plotRipples, subj, sessNum)
         end%if allindex(i,5) > 0
     end%i

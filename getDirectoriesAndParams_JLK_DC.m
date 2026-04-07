@@ -109,11 +109,13 @@ params.spatialinfoTh = 95;                                                  %in 
 params.plotCellT = 'Interneuron';                                           %default cell-type to plot 
 
 %decoding
-params.decoding.decID = 'trial';%'ripple', 'trial', 'lap'
+params.decoding.decID = {'lap', 'trial', 'ripple'};%'ripple', 'trial', 'lap'
 params.decoding.cellType = 'all';%'all', 'pyr', 'narrow'
 params.decoding.cellLocation = 'all';%JK has 'HIP' 'CA1' 'CA3' which doesn't make sense for my data
 params.decoding.correctCriterion = 'reward';%'anticipation' is in progress still
 params.decoding.trialType = 'all';%'all', 'correct', 'incorrect'
+params.decoding.analysisType = 'kfold'; %options: 'kfold', 'leave1out'
+params.binsize_mstime = 200;
 
 %parameters for monoconnex
 params.nonnorm = 0; %raw xcorr

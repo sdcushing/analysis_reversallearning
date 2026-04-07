@@ -8,7 +8,7 @@ function [data] = getNeuralStructsByDay_linearDC(allindex,dirs,uniqSess,params)
 for id = 2%:length(params.decoding.decID)
 
     %loop through unique sessions
-    for ss = 12%1:51%length(uniqSess)%not sure why 12 here, figure out
+    for ss = 1:length(uniqSess)%not sure why 12 here, figure out
 
         animal = uniqSess(ss, 1);
         sessDate = uniqSess(ss, 2);
