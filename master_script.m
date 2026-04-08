@@ -337,7 +337,7 @@ sprintf('Collecting neural data by day')
 getNeuralStructsByDay_linearDC(allindex,dirs,uniqSess,params)
 
 getSpeedandLickRateResultsByDay_linearDC(dirs,uniqSess,params);
-plotSpeedandLickRateResultsByDay_linearDC(dirs,uniqSess,params);
+plotSpeedandLickRateResultsByDay_linearDC(dirs,uniqSess,params, allindex);
 
 getFiringRateResultsByDay_linearJLK
 plotFiringRateResultsByDay_linearJLK

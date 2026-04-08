@@ -1,4 +1,4 @@
-function plotSpeedandLickRateResultsByDay_linearDC(dirs,uniqSess,params)
+function plotSpeedandLickRateResultsByDay_linearDC(dirs,uniqSess,params, allindex)
 
 
 for id = 1:2%:length(params.decoding.decID)
@@ -16,48 +16,74 @@ for id = 1:2%:length(params.decoding.decID)
 
         if strcmp(params.decoding.decID{id}, 'lap')
 
-            %split genotypes
-            speedAPOE3 = speedDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:);
-            speedAPOE4 = speedDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:);
-            lickRateAPOE3 = lickRateDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:);
-            lickRateAPOE4 = lickRateDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:);
-
-            %format data by day for each mouse
-            % output = group x mouse x day x environment x lap x position bin
-            speedByGroup = nan(2,6,4,2,200,180);
-            lickRateByGroup = nan(2,6,4,2,200,180);
-
+            % %split genotypes
+            % speedAPOE3 = speedDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:);
+            % speedAPOE4 = speedDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:);
+            % lickRateAPOE3 = lickRateDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:);
+            % lickRateAPOE4 = lickRateDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:);
+            % 
+            % %format data by day for each mouse
+            % % output = group x mouse x day x environment x lap x position bin
+            speedByGroup = nan(2,size(params.experimentalGroup),5,2,200,180);%assumes more experimental animals and max 5 days recording
+            lickRateByGroup = nan(2,size(params.experimentalGroup),5,2,200,180);
+            % 
             for g = 1:2
-                tmpdat = [];
+            %     tmpdat = [];
+            %     if g == 1
+            %         tmpSpeedDat = speedAPOE3;
+            %         tmpLickRateDat = lickRateAPOE3;
+            %         groupAnimalIDs = params.controlGroup;
+            %     elseif g == 2
+            %         tmpSpeedDat = speedAPOE4;
+            %         tmpLickRateDat = lickRateAPOE4;
+            %         groupAnimalIDs = params.experimentalGroup;
+            %     end%if g
+            %     for ee = 1:2
+            %         tmpDayInds = [];
+            %         find day indices
+            %         if ee == 1%og
+            %             tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,:),4)) ~= 0) == -1) - 1;%first day%%squeeze(nansum
+            %             tmpDayInds(:,2) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,:),4)) ~= 0) == -1);%second day
+            %         elseif ee == 2%up
+            %             tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,:),4)) ~= 0) == 1) + 1;%first day
+            %             tmpDayInds(:,2) = [find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,:),4)) ~= 0) == -1); size(tmpSpeedDat,1)];%last day
+            %         end%ee
+            % 
+            % 
+            %         %loop through mice
+            %         for m = 1:length(tmpDayInds)
+            %             speedByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpSpeedDat,3),:) = tmpSpeedDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:);
+            %             lickRateByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpLickRateDat,3),:) = tmpLickRateDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:);
+            %         end%m
+            %     end%ee
+            %end%g
+
+%%DC replacing the above with more robust method for reshaping the data
+%%structure
+                allAnimals = uniqSess(:,1);   % one animal ID per row of data
                 if g == 1
-                    tmpSpeedDat = speedAPOE3;
-                    tmpLickRateDat = lickRateAPOE3;
-                elseif g == 2
-                    tmpSpeedDat = speedAPOE4;
-                    tmpLickRateDat = lickRateAPOE4;
-                end%if g
-                for ee = 1:2
-                    %tmpDayInds = [];
-                    %find day indices
-                    % if ee == 1%og
-                    %     tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,:),4)) ~= 0) == -1) - 1;%first day%%squeeze(nansum
-                    %     tmpDayInds(:,2) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,:),4)) ~= 0) == -1);%second day
-                    % elseif ee == 2%up
-                    %     tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,:),4)) ~= 0) == 1) + 1;%first day
-                    %     tmpDayInds(:,2) = [find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,:),4)) ~= 0) == -1); size(tmpSpeedDat,1)];%last day
-                    % end%ee
+                    groupAnimals = params.controlGroup;
+                else
+                    groupAnimals = params.experimentalGroup;
+                end
 
-                    if ee ==1%og
-                        tmpDayInds = (1:2).';
+                groupRows = find(ismember(allAnimals, groupAnimals));%mice belogning to this group
+                mice = unique(allAnimals(groupRows), 'stable');%unique mice
+                numMice = numel(mice);
 
-                    %loop through mice
-                    for m = 1:length(tmpDayInds)
-                        speedByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpSpeedDat,3),:) = tmpSpeedDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:);
-                        lickRateByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpLickRateDat,3),:) = tmpLickRateDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:);
-                    end%m
-                end%ee
+                for m = 1:numMice
+                    mouseID = mice(m);
+                    mouseRows = find(allAnimals == mouseID);%rows for this mouse, mouserows(d) is row for day d
+                    numDays = numel(mouseRows);
+                    for d = 1:numDays
+                        srcRow = mouseRows(d);
+                        speedByGroup(g, m, d, :, :, :) = speedDatAll(srcRow, :, :, :);
+                        lickRateByGroup(g, m, d, :, :, :) = lickRateDatAll(srcRow, :, :, :);
+                    end%d
+                    clear mouseRows
+                end%m
+                clear groupAnimals
             end%g
-
             %plot speed by day
             for ee = 1:2
                 if ee == 1; numdays = 2; elseif ee == 2; numdays = size(speedByGroup,3); end
@@ -194,41 +220,65 @@ for id = 1:2%:length(params.decoding.decID)
         elseif strcmp(params.decoding.decID{id}, 'trial')
 
             %split genotypes
-            speedAPOE3 = speedDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:,:);
-            speedAPOE4 = speedDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:,:);
-            lickRateAPOE3 = lickRateDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:,:);
-            lickRateAPOE4 = lickRateDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:,:);
+            % speedAPOE3 = speedDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:,:);
+            % speedAPOE4 = speedDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:,:);
+            % lickRateAPOE3 = lickRateDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:,:);
+            % lickRateAPOE4 = lickRateDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:,:);
 
             %format data by day for each mouse
             % output = group x mouse x day x environment x zone type x trial x position bin
-            speedByGroup = nan(2,6,4,2,3,400,50);
-            lickRateByGroup = nan(2,6,4,2,3,400,50);
-
+            speedByGroup = nan(2,size(params.experimentalGroup),5,2,3,400,50);%assumes more experimental animals and max 5 days recording
+            lickRateByGroup = nan(2,size(params.experimentalGroup),5,2,3,400,50);
+            allAnimals = uniqSess(:,1);
             for g = 1:2
-                if g == 1
-                    tmpSpeedDat = speedAPOE3;
-                    tmpLickRateDat = lickRateAPOE3;
-                elseif g == 2
-                    tmpSpeedDat = speedAPOE4;
-                    tmpLickRateDat = lickRateAPOE4;
-                end%if g
-                for ee = 1:2
-                    tmpDayInds = [];
-                    %find day indices
-                    if ee == 1%og
-                        tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,1,:),5)) ~= 0) == -1) - 1;%first day
-                        tmpDayInds(:,2) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,1,:),5)) ~= 0) == -1);%second day
-                    elseif ee == 2%up
-                        tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,1,:),5)) ~= 0) == 1) + 1;%first day
-                        tmpDayInds(:,2) = [find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,1,:),5)) ~= 0) == -1); size(tmpSpeedDat,1)];%last day
-                    end%ee
+                % if g == 1
+                %     tmpSpeedDat = speedAPOE3;
+                %     tmpLickRateDat = lickRateAPOE3;
+                % elseif g == 2
+                %     tmpSpeedDat = speedAPOE4;
+                %     tmpLickRateDat = lickRateAPOE4;
+                % end%if g
+                % for ee = 1:2
+                %     tmpDayInds = [];
+                %     %find day indices
+                %     if ee == 1%og
+                %         tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,1,:),5)) ~= 0) == -1) - 1;%first day
+                %         tmpDayInds(:,2) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,1,:),5)) ~= 0) == -1);%second day
+                %     elseif ee == 2%up
+                %         tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,1,:),5)) ~= 0) == 1) + 1;%first day
+                %         tmpDayInds(:,2) = [find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,1,:),5)) ~= 0) == -1); size(tmpSpeedDat,1)];%last day
+                %     end%ee
+                % 
+                %     %loop through mice
+                %     for m = 1%:length(tmpDayInds)
+                %         speedByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpSpeedDat,3),1:size(tmpSpeedDat,4),1:size(tmpSpeedDat,5)) = tmpSpeedDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:,:);
+                %         lickRateByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpLickRateDat,3),1:size(tmpLickRateDat,4),1:size(tmpLickRateDat,5)) = tmpLickRateDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:,:);
+                %     end%m
+                % end%ee
 
-                    %loop through mice
-                    for m = 1%:length(tmpDayInds)
+                %%DC replacing above to be more robust
+                if g == 1
+                    groupAnimals = params.controlGroup;
+                else
+                    groupAnimals = params.experimentalGroup;
+                end%g
+                mice = unique(allAnimals(ismember(allAnimals, groupAnimals)), 'stable');
+                %id mice in this group
+                numMice = numel(mice);
+
+                for m = 1:numMice
+                    mouseID = mice(m);
+                    mouseRows = find(allAnimals == mouseID);
+                    numDays = numel(mouseRows);
+                    for d = 1:numDays
+                        srcRow = mouseRows[d];
+                        %output = group x mouse x day x environment x zone type x trial x position bin
                         speedByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpSpeedDat,3),1:size(tmpSpeedDat,4),1:size(tmpSpeedDat,5)) = tmpSpeedDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:,:);
-                        lickRateByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpLickRateDat,3),1:size(tmpLickRateDat,4),1:size(tmpLickRateDat,5)) = tmpLickRateDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:,:);
-                    end%m
-                end%ee
+                    end%d
+                    clear mouseRows
+                end%m
+
+                clear groupAnimals
             end%g
 
             %plot speed by day
