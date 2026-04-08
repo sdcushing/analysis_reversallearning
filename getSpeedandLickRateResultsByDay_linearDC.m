@@ -17,7 +17,7 @@ for id = 1:2%length(params.decoding.decID)%3 not yet operational looks like
             speedfname = fullfile([dirs.saveoutputstructs, 'Data\Behavior\dayData\' params.iden num2str(uniqSess(ss,1)) '\' num2str(uniqSess(ss,2)) '\' currEnv params.decoding.decID{id} 'Speed.mat']);
             lickRatefname = fullfile([dirs.saveoutputstructs, 'Data\Behavior\dayData\' params.iden num2str(uniqSess(ss,1)) '\' num2str(uniqSess(ss,2)) '\' currEnv params.decoding.decID{id} 'LickRate.mat']);
 
-            if isfile(dayDatafname) && ~isfile(speedfname)
+            if isfile(dayDatafname) %&& ~isfile(speedfname)
                 %load this day's data
                 data = load(dayDatafname);
                 data = data.data;
@@ -60,7 +60,7 @@ end%id
 
 %% Create struct for all days %%
 %done separately from individual days due to computational restraints
-for id = 2%:length(params.decoding.decID)
+for id = 1:2%:length(params.decoding.decID)
 
     %initialize output structs
     if strcmp(params.decoding.decID{id}, 'lap')

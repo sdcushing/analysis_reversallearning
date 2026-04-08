@@ -41,6 +41,8 @@ params.rocID = {'speed', 'lickrate', 'deltalickrate'};
 params.rocMultiplier = [-1 1 1];
 params.numTrPerBlock = 5;
 params.savechnum = {0:63}; %how to save the channels listed below in channelInds. Will have portRegion as external folder
+params.controlGroup = [21];
+params.experimentalGroup = [21];
 
 %settings from og preprocessing pipeline to get rhd2mat to work
 params.ttlCh = [1 2 3];

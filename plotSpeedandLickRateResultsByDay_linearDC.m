@@ -1,0 +1,385 @@
+function plotSpeedandLickRateResultsByDay_linearDC(dirs,uniqSess,params)
+
+
+for id = 1:2%:length(params.decoding.decID)
+    %data file names
+    speedAllfname = fullfile([dirs.saveoutputstructs, 'Data\Behavior\dayData\' params.decoding.decID{id} 'SpeedAll.mat']);
+    lickRateAllfname = fullfile([dirs.saveoutputstructs, 'Data\Behavior\dayData\' params.decoding.decID{id} 'LickRateAll.mat']);
+
+    if isfile(speedAllfname)
+
+        %load data
+        speedDatAll = load(speedAllfname);
+        speedDatAll = speedDatAll.speedDatAll;
+        lickRateDatAll = load(lickRateAllfname);
+        lickRateDatAll = lickRateDatAll.lickRateDatAll;
+
+        if strcmp(params.decoding.decID{id}, 'lap')
+
+            %split genotypes
+            speedAPOE3 = speedDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:);
+            speedAPOE4 = speedDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:);
+            lickRateAPOE3 = lickRateDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:);
+            lickRateAPOE4 = lickRateDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:);
+
+            %format data by day for each mouse
+            % output = group x mouse x day x environment x lap x position bin
+            speedByGroup = nan(2,6,4,2,200,180);
+            lickRateByGroup = nan(2,6,4,2,200,180);
+
+            for g = 1:2
+                tmpdat = [];
+                if g == 1
+                    tmpSpeedDat = speedAPOE3;
+                    tmpLickRateDat = lickRateAPOE3;
+                elseif g == 2
+                    tmpSpeedDat = speedAPOE4;
+                    tmpLickRateDat = lickRateAPOE4;
+                end%if g
+                for ee = 1:2
+                    %tmpDayInds = [];
+                    %find day indices
+                    % if ee == 1%og
+                    %     tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,:),4)) ~= 0) == -1) - 1;%first day%%squeeze(nansum
+                    %     tmpDayInds(:,2) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,:),4)) ~= 0) == -1);%second day
+                    % elseif ee == 2%up
+                    %     tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,:),4)) ~= 0) == 1) + 1;%first day
+                    %     tmpDayInds(:,2) = [find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,:),4)) ~= 0) == -1); size(tmpSpeedDat,1)];%last day
+                    % end%ee
+                    
+                    daysPerMouse = 4;
+                    numRows = size(tmpSpeedDat, 1);
+                    numMice = numRows / daysPerMouse;
+
+                    % tmpDayInds must be one entry per mouse. this should
+                    % do same thing as JK version but without breaking when
+                    % speed doesn't include 0s
+                    tmpDayInds = zeros(numMice, 2);
+
+                    for m = 1:numMice
+                        startRow = (m-1)*daysPerMouse + 1;
+                        endRow   = m*daysPerMouse;
+                        tmpDayInds(m,:) = [startRow endRow];
+                    end
+
+                    %loop through mice
+                    for m = 1:length(tmpDayInds)
+                        speedByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpSpeedDat,3),:) = tmpSpeedDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:);
+                        lickRateByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpLickRateDat,3),:) = tmpLickRateDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:);
+                    end%m
+                end%ee
+            end%g
+
+            %plot speed by day
+            for ee = 1:2
+                if ee == 1; numdays = 2; elseif ee == 2; numdays = size(speedByGroup,3); end
+                for d = 1:numdays
+                    figure; hold on
+                    for g = 1:2
+                        %define colors for this group
+                        if g == 1%APOE3
+                            gColors = [0 0 0];%black
+                        elseif g == 2%APOE4
+                            gColors = [.5 0 .5];%purple
+                        end%if g
+
+                        %shape into lap x position bin
+                        tmpPlotDat = reshape( squeeze(speedByGroup(g,:,d,ee,:,:)), [], size(speedByGroup,6) );
+                        tmpPlotDat = tmpPlotDat(~isnan(tmpPlotDat(:,2)),:);%remove nans
+
+                        %find mean and SEM across laps
+                        tmpPlotMn = nanmean(tmpPlotDat,1);
+                        tmpPlotSEM  = nanstd(tmpPlotDat,0,1) ./ sqrt(size(tmpPlotDat,1));
+
+                        %plot
+                        fill([1:size(tmpPlotDat,2), fliplr(1:size(tmpPlotDat,2))], [tmpPlotMn+tmpPlotSEM,fliplr(tmpPlotMn-tmpPlotSEM)], gColors, 'FaceAlpha', .2, 'EdgeColor', 'none');
+                        plot(1:size(tmpPlotDat,2), tmpPlotMn, 'color', gColors, 'LineWidth', 2)
+
+                        %plot zone lines and add title
+                        if ee == 1%original track
+                            sessionType = 'original';
+                            %find zones for this track
+                            tmpSess = uniqSess(uniqSess(:,1) == params.animals(1), 2);
+                            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\' params.iden num2str(params.animals(1)) '\' num2str(tmpSess(1)) '\' params.decoding.decID{id} 'Data.mat']);
+                            data = load(dayDatafname);
+                            data = data.data;
+                            %draw zone lines
+                            for zn = 1:length(data.og.azBins_deg)
+                                plot(ones(1,11).*(data.og.azBins_deg(zn)+10)/2, 0:10,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                                plot(ones(1,11).*(data.og.azBins_deg(zn)+20)/2, 0:10,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                            end%zn
+                        elseif ee == 2%update track
+                            sessionType = 'update';
+                            %find zones for this track
+                            tmpSess = uniqSess(uniqSess(:,1) == params.animals(1), 2);
+                            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\' params.iden num2str(params.animals(1)) '\' num2str(tmpSess(end)) '\' params.decoding.decID{id} 'Data.mat']);
+                            data = load(dayDatafname);
+                            data = data.data;
+                            %draw zone lines
+                            for zn = 1:length(data.up.azBins_deg)
+                                plot(ones(1,11).*(data.up.azBins_deg(zn)+10)/2, 0:10,'-', 'Color', [1 0.4 0.6])%pink
+                                plot(ones(1,11).*(data.up.azBins_deg(zn)+20)/2, 0:10,'-', 'Color', [1 0.4 0.6])%pink
+                                plot(ones(1,11).*(data.up.czBins_deg(zn))/2, 0:10,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                                plot(ones(1,11).*(data.up.czBins_deg(zn)+10)/2, 0:10,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                            end%zn
+                        end%ee
+                        title(sprintf("Speed across %s Track Day %d", sessionType, d))
+
+                        %save fig
+                        figdir = [dirs.savefigures '\Behavior\ByDay\Lap\GroupPlots' ];
+                        if ~isfolder(figdir)
+                            mkdir(figdir)
+                        end
+                        filename = [figdir '\' sprintf('speed_group_%s_day%d_lap_MnSEM',sessionType, d)];
+                        print(gcf,filename,'-dpng','-r300')
+                    end%g
+                end%d
+            end%ee
+
+            %plot lick rate by day
+            for ee = 1:2
+                if ee == 1; numdays = 2; elseif ee == 2; numdays = size(lickRateByGroup,3); end
+                for d = 1:numdays
+                    figure; hold on
+                    for g = 1:2
+                        %define colors for this group
+                        if g == 1%APOE3
+                            gColors = [0 0 0];%black
+                        elseif g == 2%APOE4
+                            gColors = [.5 0 .5];%purple
+                        end%if g
+
+                        %shape into lap x position bin
+                        tmpPlotDat = reshape( squeeze(lickRateByGroup(g,:,d,ee,:,:)), [], size(lickRateByGroup,6) );
+                        tmpPlotDat = tmpPlotDat(~isnan(tmpPlotDat(:,2)),:);%remove nans
+                        tmpPlotDat(tmpPlotDat==0) = 0.0001;
+
+                        %find mean and SEM across laps
+                        tmpPlotMn = nanmean(tmpPlotDat,1);
+                        tmpPlotSEM  = nanstd(tmpPlotDat,0,1) ./ sqrt(size(tmpPlotDat,1));
+
+                        %plot
+                        fill([1:size(tmpPlotDat,2), fliplr(1:size(tmpPlotDat,2))], [tmpPlotMn+tmpPlotSEM,fliplr(tmpPlotMn-tmpPlotSEM)], gColors, 'FaceAlpha', .2, 'EdgeColor', 'none');
+                        plot(1:size(tmpPlotDat,2), tmpPlotMn, 'color', gColors, 'LineWidth', 2)
+
+                        %plot zone lines and add title
+                        if ee == 1%original track
+                            sessionType = 'original';
+                            %find zones for this track
+                            tmpSess = uniqSess(uniqSess(:,1) == params.animals(1), 2);
+                            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\' params.iden num2str(params.animals(1)) '\' num2str(tmpSess(1)) '\' params.decoding.decID{id} 'Data.mat']);
+                            data = load(dayDatafname);
+                            data = data.data;
+                            %draw zone lines
+                            for zn = 1:length(data.og.azBins_deg)
+                                plot(ones(1,6).*(data.og.azBins_deg(zn)+10)/2, 0:5,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                                plot(ones(1,6).*(data.og.azBins_deg(zn)+20)/2, 0:5,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                            end%zn
+                        elseif ee == 2%update track
+                            sessionType = 'update';
+                            %find zones for this track
+                            tmpSess = uniqSess(uniqSess(:,1) == params.animals(1), 2);
+                            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\' params.iden num2str(params.animals(1)) '\' num2str(tmpSess(end)) '\' params.decoding.decID{id} 'Data.mat']);
+                            data = load(dayDatafname);
+                            data = data.data;
+                            %draw zone lines
+                            for zn = 1:length(data.up.azBins_deg)
+                                plot(ones(1,6).*(data.up.azBins_deg(zn)+10)/2, 0:5,'-', 'Color', [1 0.4 0.6])%pink
+                                plot(ones(1,6).*(data.up.azBins_deg(zn)+20)/2, 0:5,'-', 'Color', [1 0.4 0.6])%pink
+                                plot(ones(1,6).*(data.up.czBins_deg(zn))/2, 0:5,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                                plot(ones(1,6).*(data.up.czBins_deg(zn)+10)/2, 0:5,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                            end%zn
+                        end%ee
+                        title(sprintf("Lick Rate across %s Track Day %d", sessionType, d))
+
+                        %save fig
+                        figdir = [dirs.savefigures '\Behavior\ByDay\Lap\GroupPlots' ];
+                        if ~isfolder(figdir)
+                            mkdir(figdir)
+                        end
+                        filename = [figdir '\' sprintf('lickrate_group_%s_day%d_lap_MnSEM',sessionType, d)];
+                        print(gcf,filename,'-dpng','-r300')
+                    end%g
+                end%d
+            end%ee
+
+        elseif strcmp(params.decoding.decID{id}, 'trial')
+
+            %split genotypes
+            speedAPOE3 = speedDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:,:);
+            speedAPOE4 = speedDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:,:);
+            lickRateAPOE3 = lickRateDatAll(ismember(uniqSess(:,1), params.controlGroup),:,:,:,:);
+            lickRateAPOE4 = lickRateDatAll(ismember(uniqSess(:,1), params.experimentalGroup),:,:,:,:);
+
+            %format data by day for each mouse
+            % output = group x mouse x day x environment x zone type x trial x position bin
+            speedByGroup = nan(2,6,4,2,3,400,50);
+            lickRateByGroup = nan(2,6,4,2,3,400,50);
+
+            for g = 1:2
+                if g == 1
+                    tmpSpeedDat = speedAPOE3;
+                    tmpLickRateDat = lickRateAPOE3;
+                elseif g == 2
+                    tmpSpeedDat = speedAPOE4;
+                    tmpLickRateDat = lickRateAPOE4;
+                end%if g
+                for ee = 1:2
+                    tmpDayInds = [];
+                    %find day indices
+                    if ee == 1%og
+                        tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,1,:),5)) ~= 0) == -1) - 1;%first day
+                        tmpDayInds(:,2) = find(diff(squeeze(nansum(tmpSpeedDat(:,1,1,1,:),5)) ~= 0) == -1);%second day
+                    elseif ee == 2%up
+                        tmpDayInds(:,1) = find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,1,:),5)) ~= 0) == 1) + 1;%first day
+                        tmpDayInds(:,2) = [find(diff(squeeze(nansum(tmpSpeedDat(:,2,1,1,:),5)) ~= 0) == -1); size(tmpSpeedDat,1)];%last day
+                    end%ee
+
+                    %loop through mice
+                    for m = 1%:length(tmpDayInds)
+                        speedByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpSpeedDat,3),1:size(tmpSpeedDat,4),1:size(tmpSpeedDat,5)) = tmpSpeedDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:,:);
+                        lickRateByGroup(g,m,1:length(tmpDayInds(m,1):tmpDayInds(m,2)),ee,1:size(tmpLickRateDat,3),1:size(tmpLickRateDat,4),1:size(tmpLickRateDat,5)) = tmpLickRateDat(tmpDayInds(m,1):tmpDayInds(m,2),ee,:,:,:);
+                    end%m
+                end%ee
+            end%g
+
+            %plot speed by day
+            for ee = 1:2
+                if ee == 1; numdays = 2; elseif ee == 2; numdays = size(speedByGroup,3); end
+                for d = 1:numdays
+                    figure; hold on
+                    for g = 1:2
+                        %define colors for this group
+                        if g == 1%APOE3
+                            gColors = [0 0 0];%black
+                        elseif g == 2%APOE4
+                            gColors = [.5 0 .5];%purple
+                        end%if g
+
+                        %shape into lap x position bin
+                        tmpPlotDat = reshape( squeeze(speedByGroup(g,:,d,ee,:,:,:)), [], size(speedByGroup,7) );
+                        tmpPlotDat = tmpPlotDat(~isnan(tmpPlotDat(:,2)),:);%remove nans
+
+                        %find mean and SEM across laps
+                        tmpPlotMn = nanmean(tmpPlotDat,1);
+                        tmpPlotSEM  = nanstd(tmpPlotDat,0,1) ./ sqrt(size(tmpPlotDat,1));
+
+                        %plot
+                        fill([1:size(tmpPlotDat,2), fliplr(1:size(tmpPlotDat,2))], [tmpPlotMn+tmpPlotSEM,fliplr(tmpPlotMn-tmpPlotSEM)], gColors, 'FaceAlpha', .2, 'EdgeColor', 'none');
+                        plot(1:size(tmpPlotDat,2), tmpPlotMn, 'color', gColors, 'LineWidth', 2)
+
+                        %plot zone lines and add title
+                        if ee == 1%original track
+                            sessionType = 'original';
+                            %find zones for this track
+                            tmpSess = uniqSess(uniqSess(:,1) == params.animals(1), 2);
+                            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\' params.iden num2str(params.animals(1)) '\' num2str(tmpSess(1)) '\' params.decoding.decID{id} 'Data.mat']);
+                            data = load(dayDatafname);
+                            data = data.data;
+                            %draw zone lines
+                            for zn = 1:length(data.og.azBins_deg)
+                                plot(ones(1,11).*(data.og.azBins_deg(zn)+10)/2, 0:10,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                                plot(ones(1,11).*(data.og.azBins_deg(zn)+20)/2, 0:10,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                            end%zn
+                        elseif ee == 2%update track
+                            sessionType = 'update';
+                            %find zones for this track
+                            tmpSess = uniqSess(uniqSess(:,1) == params.animals(1), 2);
+                            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\' params.iden num2str(params.animals(1)) '\' num2str(tmpSess(end)) '\' params.decoding.decID{id} 'Data.mat']);
+                            data = load(dayDatafname);
+                            data = data.data;
+                            %draw zone lines
+                            for zn = 1:length(data.up.azBins_deg)
+                                plot(ones(1,11).*(data.up.azBins_deg(zn)+10)/2, 0:10,'-', 'Color', [1 0.4 0.6])%pink
+                                plot(ones(1,11).*(data.up.azBins_deg(zn)+20)/2, 0:10,'-', 'Color', [1 0.4 0.6])%pink
+                                plot(ones(1,11).*(data.up.czBins_deg(zn))/2, 0:10,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                                plot(ones(1,11).*(data.up.czBins_deg(zn)+10)/2, 0:10,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                            end%zn
+                        end%ee
+                        title(sprintf("Speed across %s Trial Day %d", sessionType, d))
+
+                        %save fig
+                        figdir = [dirs.savefigures '\Behavior\ByDay\Trial\GroupPlots' ];
+                        if ~isfolder(figdir)
+                            mkdir(figdir)
+                        end
+                        filename = [figdir '\' sprintf('speed_group_%s_day%d_trial_MnSEM',sessionType, d)];
+                        print(gcf,filename,'-dpng','-r300')
+                    end%g
+                end%d
+            end%ee
+
+            %plot lick rate by day
+            for ee = 1:2
+                if ee == 1; numdays = 2; elseif ee == 2; numdays = size(lickRateByGroup,3); end
+                for d = 1:numdays
+                    figure; hold on
+                    for g = 1:2
+                        %define colors for this group
+                        if g == 1%APOE3
+                            gColors = [0 0 0];%black
+                        elseif g == 2%APOE4
+                            gColors = [.5 0 .5];%purple
+                        end%if g
+
+                        %shape into lap x position bin
+                        tmpPlotDat = reshape( squeeze(lickRateByGroup(g,:,d,ee,:,:,:)), [], size(lickRateByGroup,7) );
+                        tmpPlotDat = tmpPlotDat(~isnan(tmpPlotDat(:,2)),:);%remove nans
+                        tmpPlotDat(tmpPlotDat==0) = 0.0001;
+
+                        %find mean and SEM across laps
+                        tmpPlotMn = nanmean(tmpPlotDat,1);
+                        tmpPlotSEM  = nanstd(tmpPlotDat,0,1) ./ sqrt(size(tmpPlotDat,1));
+
+                        %plot
+                        fill([1:size(tmpPlotDat,2), fliplr(1:size(tmpPlotDat,2))], [tmpPlotMn+tmpPlotSEM,fliplr(tmpPlotMn-tmpPlotSEM)], gColors, 'FaceAlpha', .2, 'EdgeColor', 'none');
+                        plot(1:size(tmpPlotDat,2), tmpPlotMn, 'color', gColors, 'LineWidth', 2)
+
+                        %plot zone lines and add title
+                        if ee == 1%original track
+                            sessionType = 'original';
+                            %find zones for this track
+                            tmpSess = uniqSess(uniqSess(:,1) == params.animals(1), 2);
+                            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\' params.iden num2str(params.animals(1)) '\' num2str(tmpSess(1)) '\' params.decoding.decID{id} 'Data.mat']);
+                            data = load(dayDatafname);
+                            data = data.data;
+                            %draw zone lines
+                            for zn = 1:length(data.og.azBins_deg)
+                                plot(ones(1,3).*(data.og.azBins_deg(zn)+10)/2, 0:2,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                                plot(ones(1,3).*(data.og.azBins_deg(zn)+20)/2, 0:2,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                            end%zn
+                        elseif ee == 2%update track
+                            sessionType = 'update';
+                            %find zones for this track
+                            tmpSess = uniqSess(uniqSess(:,1) == params.animals(1), 2);
+                            dayDatafname = fullfile([dirs.saveoutputstructs, 'Data\Neural\dayData\' params.iden num2str(params.animals(1)) '\' num2str(tmpSess(end)) '\' params.decoding.decID{id} 'Data.mat']);
+                            data = load(dayDatafname);
+                            data = data.data;
+                            %draw zone lines
+                            for zn = 1:length(data.up.azBins_deg)
+                                plot(ones(1,3).*(data.up.azBins_deg(zn)+10)/2, 0:2,'-', 'Color', [1 0.4 0.6])%pink
+                                plot(ones(1,3).*(data.up.azBins_deg(zn)+20)/2, 0:2,'-', 'Color', [1 0.4 0.6])%pink
+                                plot(ones(1,3).*(data.up.czBins_deg(zn))/2, 0:2,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                                plot(ones(1,3).*(data.up.czBins_deg(zn)+10)/2, 0:2,'-', 'Color', [0.65, 0.16, 0.16])%brown
+                            end%zn
+                        end%ee
+                        title(sprintf("Lick Rate across %s Trial Day %d", sessionType, d))
+
+                        %save fig
+                        figdir = [dirs.savefigures '\Behavior\ByDay\Trial\GroupPlots' ];
+                        if ~isfolder(figdir)
+                            mkdir(figdir)
+                        end
+                        filename = [figdir '\' sprintf('lickrate_group_%s_day%d_trial_MnSEM',sessionType, d)];
+                        print(gcf,filename,'-dpng','-r300')
+                    end%g
+                end%d
+            end%ee
+
+        end%if lap/trial
+
+    end%isfile(speedAllfname)
+end%id
+
+end%function
+
